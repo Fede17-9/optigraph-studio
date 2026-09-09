@@ -8,6 +8,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // Enlazar contador de nodos a la barra inferior
     const nodeCountEl = document.getElementById("node-count");
+    const totalWeightEl = document.getElementById("total-weight");
     graphManager.onNodeCountChange = (count) => {
         if (nodeCountEl) nodeCountEl.innerText = count;
     };
@@ -117,12 +118,19 @@ document.addEventListener("DOMContentLoaded", () => {
             const statusEl = document.getElementById("status-indicator");
             statusEl.className = "inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-emerald-900/60 text-emerald-300 border border-emerald-600 shadow-sm";
             statusEl.innerText = "🟢 RED CONEXA — AEM CALCULADO";
+            if (totalWeightEl) totalWeightEl.innerText = `${result.totalWeight} u`;
 
             Swal.fire({
                 icon: 'success',
                 title: '¡AEM Calculado con Éxito!',
                 text: `Iniciando desde Nodo (${selectedStartNode}), el peso total del árbol es de ${result.totalWeight} unidades.`,
-                confirmButtonColor: '#10b981'
+                confirmButtonColor: '#10b981',
+                customClass: {
+                    popup: 'og-modal',
+                    title: 'og-modal-title',
+                    htmlContainer: 'og-modal-text',
+                    confirmButton: 'og-modal-confirm'
+                }
             });
 
         } catch (error) {
@@ -134,7 +142,13 @@ document.addEventListener("DOMContentLoaded", () => {
                 icon: 'error',
                 title: 'Error de Conexidad',
                 text: error.message,
-                confirmButtonColor: '#f43f5e'
+                confirmButtonColor: '#f43f5e',
+                customClass: {
+                    popup: 'og-modal',
+                    title: 'og-modal-title',
+                    htmlContainer: 'og-modal-text',
+                    confirmButton: 'og-modal-deny'
+                }
             });
         }
     });
@@ -146,6 +160,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     function resetUI() {
         if (nodeCountEl) nodeCountEl.innerText = graphManager.nodes.length;
+        if (totalWeightEl) totalWeightEl.innerText = "—";
         document.getElementById("steps-container").innerHTML = `
             <div class="text-center py-12 text-slate-500 text-xs">
                 Haga clic en "Resolver AEM" para generar la secuencia de iteraciones.
