@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OptiGraph Studio | Investigación de Operaciones</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script type="text/javascript" src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <style>
+    #canvas-container {
+      background-image: radial-gradient(#334155 1px, transparent 1px);
+      background-size: 20px 20px;
+    }
+  </style>
+</head>
+<body class="bg-slate-900 text-slate-100 font-sans antialiased h-screen flex flex-col overflow-hidden">
+
+  <header class="bg-slate-800 border-b border-slate-700 px-6 py-3 flex items-center justify-between shadow-lg">
+    <div class="flex items-center space-x-3">
+      <div class="bg-emerald-500 p-2 rounded-lg text-slate-900 font-extrabold text-xl">OG</div>
+      <div>
+        <h1 class="text-lg font-bold tracking-wide">OptiGraph Studio</h1>
+        <p class="text-xs text-slate-400">Investigación de Operaciones — Suite de Algoritmos</p>
+      </div>
+    </div>
+    <nav class="flex space-x-2 bg-slate-900 p-1 rounded-xl border border-slate-700">
+      <button class="px-4 py-1.5 text-xs font-semibold rounded-lg bg-emerald-500 text-slate-900 shadow">Taller 1: AEM</button>
+      <button class="px-4 py-1.5 text-xs font-semibold rounded-lg text-slate-500 cursor-not-allowed" disabled>Taller 2: Ruta Más Corta 🔒</button>
+      <button class="px-4 py-1.5 text-xs font-semibold rounded-lg text-slate-500 cursor-not-allowed" disabled>Taller 3: Flujo Máximo 🔒</button>
+    </nav>
+  </header>
+
+  <div class="flex flex-1 overflow-hidden">
+    
+    <aside class="w-64 bg-slate-800 border-r border-slate-700 p-4 flex flex-col justify-between">
+      <div class="space-y-4">
+        <h2 class="text-xs font-bold uppercase tracking-wider text-slate-400">Herramientas de Edición</h2>
+        
+        <div class="space-y-2">
+          <button id="btn-add-node" class="w-full py-2 px-3 bg-slate-700 hover:bg-slate-600 text-slate-200 text-xs font-medium rounded-lg transition flex items-center space-x-2 border border-slate-600">
+            <span>➕</span> <span>Agregar Nodo</span>
+          </button>
+          <button id="btn-add-edge" class="w-full py-2 px-3 bg-slate-700 hover:bg-slate-600 text-slate-200 text-xs font-medium rounded-lg transition flex items-center space-x-2 border border-slate-600">
+            <span>🔗</span> <span>Conectar Arco</span>
+          </button>
+          <button id="btn-clear" class="w-full py-2 px-3 bg-rose-900/40 hover:bg-rose-900/60 text-rose-300 text-xs font-medium rounded-lg transition flex items-center space-x-2 border border-rose-800/50">
+            <span>🗑️</span> <span>Limpiar Red</span>
+          </button>
+        </div>
+
+        <div class="p-2.5 bg-slate-900/70 rounded-lg border border-slate-700 text-[11px] text-slate-400">
+          💡 <span class="font-semibold text-slate-300">Tip de Edición:</span> Clic derecho sobre un nodo o conexión para eliminarlo o cambiar su peso.
+        </div>
+
+        <hr class="border-slate-700">
+
+        <h2 class="text-xs font-bold uppercase tracking-wider text-slate-400">Ejemplos Rápidos</h2>
+        <select id="select-demo" class="w-full bg-slate-900 border border-slate-700 text-slate-300 text-xs rounded-lg p-2.5 focus:ring-emerald-500 focus:border-emerald-500">
+          <option value="" selected disabled>Seleccionar Red de Prueba...</option>
+          <option value="red1">Red 1 (Ejemplo Clase)</option>
+          <option value="red2">Red 2 (Ejemplo Clase)</option>
+          <option value="red3">Red 3 (15 Nodos)</option>
+        </select>
+      </div>
+
+      <button id="btn-solve" class="w-full py-3 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-sm rounded-xl shadow-lg transition transform active:scale-95 flex justify-center items-center space-x-2">
+        <span>⚡</span> <span>Resolver AEM</span>
+      </button>
+    </aside>
+
+    <main class="flex-1 relative bg-slate-950 flex flex-col">
+      <div id="canvas-container" class="w-full flex-1"></div>
+
+      <footer class="bg-slate-800 border-t border-slate-700 px-6 py-3 flex justify-between items-center">
+        <div class="flex items-center space-x-4">
+          <span id="status-indicator" class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-slate-700 text-slate-300">
+            ⚪ Esperando red...
+          </span>
+        </div>
+        <div class="flex items-center space-x-2">
+          <span class="text-xs text-slate-400 uppercase font-semibold">Cantidad de Nodos:</span>
+          <span id="node-count" class="text-xl font-black text-sky-400 font-mono bg-slate-900 px-3 py-1 rounded-lg border border-slate-700">0</span>
+        </div>
+      </footer>
+    </main>
+
+    <aside class="w-96 bg-slate-800 border-l border-slate-700 flex flex-col">
+      <div class="p-4 border-b border-slate-700">
+        <h2 class="text-sm font-bold text-slate-200">Procedimiento Paso a Paso</h2>
+        <p class="text-xs text-slate-400">Evolución de los conjuntos $k, C_k, \overline{C}_k$</p>
+      </div>
+      
+      <div class="flex-1 overflow-y-auto p-4 space-y-3" id="steps-container">
+        <div class="text-center py-12 text-slate-500 text-xs">
+          Haga clic en "Resolver AEM" para generar la secuencia de iteraciones.
+        </div>
+      </div>
+    </aside>
+
+  </div>
+
+  <script src="js/mst-algorithm.js"></script>
+  <script src="js/graph-manager.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>
