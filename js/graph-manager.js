@@ -236,15 +236,22 @@ class GraphManager {
         }
     }
 
-    highlightMST(mstEdges) {
+    highlightMST(mstEdges, tieEdges = []) {
         const mstEdgeIds = new Set(mstEdges.map(e => e.id));
+        const tieEdgeIds = new Set(tieEdges.map(e => e.id));
 
         const updatedEdges = this.edges.get().map(edge => {
             const isSelected = mstEdgeIds.has(edge.id) || mstEdgeIds.has(`${edge.to}-${edge.from}`);
+            const isTie = tieEdgeIds.has(edge.id) || tieEdgeIds.has(`${edge.to}-${edge.from}`);
             return {
                 id: edge.id,
-                color: isSelected ? { color: '#10b981', highlight: '#34d399' } : { color: '#334155', opacity: 0.3 },
-                width: isSelected ? 5 : 1
+                color: isSelected
+                    ? { color: '#10b981', highlight: '#34d399' }
+                    : isTie
+                        ? { color: '#38bdf8', highlight: '#7dd3fc' }
+                        : { color: '#334155', opacity: 0.3 },
+                width: isSelected ? 5 : isTie ? 3 : 1,
+                dashes: !isSelected && isTie
             };
         });
 

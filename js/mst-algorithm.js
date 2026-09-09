@@ -63,13 +63,13 @@ class MSTSolver {
         const C_k = new Set([initialNode]);
         const C_bar = new Set(this.nodes.map(n => n.id).filter(id => id !== initialNode));
         const selectedEdges = [];
+        const tiedEdges = [];
         const stepTable = [];
         let totalWeight = 0;
         let k = 1;
 
         while (C_bar.size > 0) {
-            let minEdge = null;
-            let minWeight = Infinity;
+            const candidateEdges = [];
 
             // Buscar el arco de menor peso que conecta C_k con C_bar
             this.edges.forEach(edge => {
@@ -79,14 +79,19 @@ class MSTSolver {
                 const fromInCbar = C_bar.has(edge.from);
 
                 if ((fromInCk && toInCbar) || (toInCk && fromInCbar)) {
-                    if (edge.weight < minWeight) {
-                        minWeight = edge.weight;
-                        minEdge = edge;
-                    }
+                    candidateEdges.push(edge);
                 }
             });
 
-            if (!minEdge) break;
+            if (candidateEdges.length === 0) break;
+
+            const minWeight = Math.min(...candidateEdges.map(edge => edge.weight));
+            const minimumEdges = candidateEdges.filter(edge => edge.weight === minWeight);
+            const minEdge = minimumEdges[0];
+            const alternativeEdges = minimumEdges.slice(1);
+            const tieDescription = minimumEdges.length > 1
+                ? `Empate detectado entre: ${minimumEdges.map(edge => `(${edge.from} - ${edge.to})`).join(', ')} [Peso: ${minWeight}]. Se seleccionó: (${minEdge.from} - ${minEdge.to})`
+                : null;
 
             // Determinar el nuevo nodo que ingresa a C_k
             const newConnectedNode = C_k.has(minEdge.from) ? minEdge.to : minEdge.from;
@@ -97,19 +102,23 @@ class MSTSolver {
                 Ck: Array.from(C_k).join(", "),
                 Cbar: Array.from(C_bar).join(", "),
                 selectedEdge: `(${minEdge.from} - ${minEdge.to})`,
-                weight: minEdge.weight
+                weight: minEdge.weight,
+                tieEdges: alternativeEdges,
+                tieDescription
             });
 
             // Actualizar conjuntos
             C_k.add(newConnectedNode);
             C_bar.delete(newConnectedNode);
             selectedEdges.push(minEdge);
+            tiedEdges.push(...alternativeEdges);
             totalWeight += minEdge.weight;
             k++;
         }
 
         return {
             selectedEdges,
+            tiedEdges,
             totalWeight,
             stepTable
         };

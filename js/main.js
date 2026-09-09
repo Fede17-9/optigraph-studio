@@ -100,7 +100,7 @@ document.addEventListener("DOMContentLoaded", () => {
             const result = solver.solvePrim(selectedStartNode);
 
             // 1. Resaltar arcos visualmente en el lienzo
-            graphManager.highlightMST(result.selectedEdges);
+            graphManager.highlightMST(result.selectedEdges, result.tiedEdges);
 
             // 2. Renderizar pasos analíticos en el panel derecho
             renderProcedureSteps(result.stepTable);
@@ -170,6 +170,7 @@ function renderProcedureSteps(stepTable) {
                 <p><span class="text-slate-500">C<sub>${step.iteration}</sub>:</span> { ${step.Ck} }</p>
                 <p><span class="text-slate-500">C̄<sub>${step.iteration}</sub>:</span> { ${step.Cbar} }</p>
                 <p><span class="text-slate-500">Arco elegido:</span> <strong class="text-emerald-300">${step.selectedEdge}</strong></p>
+                ${step.tieDescription ? `<p class="text-sky-300">${step.tieDescription}</p>` : ''}
             </div>
         `;
         container.appendChild(stepCard);
