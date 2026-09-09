@@ -256,41 +256,65 @@ class GraphManager {
 
         if (presetKey === 'red1') {
             this.nodes.add([
-                { id: '1', label: '1', x: -200, y: 100 },
-                { id: '2', label: '2', x: -100, y: -50 },
-                { id: '3', label: '3', x: -100, y: 150 },
-                { id: '4', label: '4', x: 100, y: -50 },
-                { id: '5', label: '5', x: 100, y: 150 },
-                { id: '6', label: '6', x: 200, y: 100 }
+                { id: 'a', label: 'a', x: -300, y: 0 },
+                { id: 'b', label: 'b', x: -120, y: -150 },
+                { id: 'c', label: 'c', x: -120, y: 0 },
+                { id: 'd', label: 'd', x: -120, y: 170 },
+                { id: 'f', label: 'f', x: 110, y: 0 },
+                { id: 'e', label: 'e', x: 110, y: 170 },
+                { id: 'g', label: 'g', x: 110, y: -150 },
+                { id: 'z', label: 'z', x: 300, y: 0 }
             ]);
             this.edges.add([
-                { id: '1-2', from: '1', to: '2', label: '2', weight: 2 },
-                { id: '1-3', from: '1', to: '3', label: '4', weight: 4 },
-                { id: '2-3', from: '2', to: '3', label: '1', weight: 1 },
-                { id: '2-4', from: '2', to: '4', label: '7', weight: 7 },
-                { id: '3-5', from: '3', to: '5', label: '3', weight: 3 },
-                { id: '4-5', from: '4', to: '5', label: '2', weight: 2 },
-                { id: '4-6', from: '4', to: '6', label: '5', weight: 5 },
-                { id: '5-6', from: '5', to: '6', label: '8', weight: 8 }
+                { id: 'a-b', from: 'a', to: 'b', label: '16', weight: 16 },
+                { id: 'a-c', from: 'a', to: 'c', label: '10', weight: 10 },
+                { id: 'a-d', from: 'a', to: 'd', label: '5', weight: 5 },
+                { id: 'b-c', from: 'b', to: 'c', label: '2', weight: 2 },
+                { id: 'b-f', from: 'b', to: 'f', label: '4', weight: 4 },
+                { id: 'b-g', from: 'b', to: 'g', label: '6', weight: 6 },
+                { id: 'c-d', from: 'c', to: 'd', label: '4', weight: 4 },
+                { id: 'c-e', from: 'c', to: 'e', label: '10', weight: 10 },
+                { id: 'c-f', from: 'c', to: 'f', label: '12', weight: 12 },
+                { id: 'd-e', from: 'd', to: 'e', label: '15', weight: 15 },
+                { id: 'e-f', from: 'e', to: 'f', label: '3', weight: 3 },
+                { id: 'e-z', from: 'e', to: 'z', label: '5', weight: 5 },
+                { id: 'f-g', from: 'f', to: 'g', label: '8', weight: 8 },
+                { id: 'f-z', from: 'f', to: 'z', label: '16', weight: 16 },
+                { id: 'g-z', from: 'g', to: 'z', label: '7', weight: 7 }
             ]);
         } else if (presetKey === 'red2') {
             this.nodes.add([
-                { id: 'A', label: 'A', x: -250, y: 0 },
-                { id: 'B', label: 'B', x: -120, y: -120 },
-                { id: 'C', label: 'C', x: -120, y: 120 },
-                { id: 'D', label: 'D', x: 120, y: -120 },
-                { id: 'E', label: 'E', x: 120, y: 120 },
-                { id: 'F', label: 'F', x: 250, y: 0 }
+                { id: 'R', label: 'R', x: -300, y: 0 },
+                { id: 'M', label: 'M', x: -160, y: -130 },
+                { id: 'N', label: 'N', x: -160, y: 150 },
+                { id: 'K', label: 'K', x: 0, y: -200 },
+                { id: 'P', label: 'P', x: 0, y: 0 },
+                { id: 'Q', label: 'Q', x: 190, y: -130 },
+                { id: 'L', label: 'L', x: 190, y: 0 },
+                { id: 'U', label: 'U', x: 70, y: 170 },
+                { id: 'T', label: 'T', x: 230, y: 170 },
+                { id: 'S', label: 'S', x: 350, y: 0 }
             ]);
             this.edges.add([
-                { id: 'A-B', from: 'A', to: 'B', label: '4', weight: 4 },
-                { id: 'A-C', from: 'A', to: 'C', label: '2', weight: 2 },
-                { id: 'B-C', from: 'B', to: 'C', label: '1', weight: 1 },
-                { id: 'B-D', from: 'B', to: 'D', label: '5', weight: 5 },
-                { id: 'C-E', from: 'C', to: 'E', label: '8', weight: 8 },
-                { id: 'D-E', from: 'D', to: 'E', label: '2', weight: 2 },
-                { id: 'D-F', from: 'D', to: 'F', label: '6', weight: 6 },
-                { id: 'E-F', from: 'E', to: 'F', label: '3', weight: 3 }
+                { id: 'R-M', from: 'R', to: 'M', label: '6', weight: 6 },
+                { id: 'R-N', from: 'R', to: 'N', label: '4', weight: 4 },
+                { id: 'R-P', from: 'R', to: 'P', label: '2', weight: 2 },
+                { id: 'M-N', from: 'M', to: 'N', label: '3', weight: 3 },
+                { id: 'M-P', from: 'M', to: 'P', label: '8', weight: 8 },
+                { id: 'M-K', from: 'M', to: 'K', label: '9', weight: 9 },
+                { id: 'N-P', from: 'N', to: 'P', label: '7', weight: 7 },
+                { id: 'N-U', from: 'N', to: 'U', label: '8', weight: 8 },
+                { id: 'K-P', from: 'K', to: 'P', label: '4', weight: 4 },
+                { id: 'K-Q', from: 'K', to: 'Q', label: '7', weight: 7 },
+                { id: 'P-L', from: 'P', to: 'L', label: '5', weight: 5 },
+                { id: 'P-U', from: 'P', to: 'U', label: '6', weight: 6 },
+                { id: 'Q-L', from: 'Q', to: 'L', label: '3', weight: 3 },
+                { id: 'Q-S', from: 'Q', to: 'S', label: '2', weight: 2 },
+                { id: 'L-S', from: 'L', to: 'S', label: '9', weight: 9 },
+                { id: 'L-T', from: 'L', to: 'T', label: '1', weight: 1 },
+                { id: 'U-S', from: 'U', to: 'S', label: '4', weight: 4 },
+                { id: 'U-T', from: 'U', to: 'T', label: '5', weight: 5 },
+                { id: 'T-S', from: 'T', to: 'S', label: '6', weight: 6 }
             ]);
         } else if (presetKey === 'red3') {
             this.nodes.add([
