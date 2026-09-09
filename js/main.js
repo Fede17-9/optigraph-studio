@@ -87,6 +87,14 @@ document.addEventListener("DOMContentLoaded", () => {
             confirmButtonText: 'Resolver AEM',
             cancelButtonText: 'Cancelar',
             confirmButtonColor: '#10b981',
+            customClass: {
+                popup: 'og-modal',
+                title: 'og-modal-title',
+                htmlContainer: 'og-modal-text',
+                input: 'og-modal-input',
+                confirmButton: 'og-modal-confirm',
+                cancelButton: 'og-modal-cancel'
+            },
             preConfirm: () => {
                 return document.getElementById('swal-start-node').value;
             }

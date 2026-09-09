@@ -42,3 +42,98 @@
     transform: translateY(0);
   }
 }
+
+/* Estilo compartido para los modales de la aplicacion */
+.og-modal {
+  width: min(92vw, 30rem);
+  padding: 1.75rem;
+  border: 1px solid #334155;
+  border-top: 3px solid #10b981;
+  border-radius: 1.25rem;
+  background: #0f172a;
+  color: #e2e8f0;
+  box-shadow: 0 24px 60px rgb(2 6 23 / 55%);
+}
+
+.og-modal-title {
+  margin-bottom: 0.5rem;
+  color: #f8fafc;
+  font-size: 1.15rem;
+  font-weight: 800;
+  letter-spacing: 0;
+}
+
+.og-modal-text {
+  color: #94a3b8;
+  font-size: 0.85rem;
+  line-height: 1.5;
+}
+
+.og-modal-input,
+.og-modal select {
+  border: 1px solid #475569 !important;
+  border-radius: 0.75rem !important;
+  background: #020617 !important;
+  color: #e2e8f0 !important;
+  box-shadow: none !important;
+}
+
+.og-modal input[type='number'] {
+  color-scheme: dark;
+  padding-right: 0.75rem !important;
+}
+
+.og-modal input[type='number']::-webkit-inner-spin-button,
+.og-modal input[type='number']::-webkit-outer-spin-button {
+  opacity: 1;
+  filter: grayscale(1) brightness(1.45);
+}
+
+.og-modal select {
+  min-height: 2.75rem;
+  padding: 0.65rem 2.5rem 0.65rem 1rem !important;
+  border-radius: 9999px !important;
+  color-scheme: dark;
+}
+
+.og-modal-input:focus,
+.og-modal select:focus {
+  border-color: #10b981 !important;
+  box-shadow: 0 0 0 3px rgb(16 185 129 / 18%) !important;
+}
+
+.og-modal-confirm,
+.og-modal-cancel,
+.og-modal-deny {
+  min-width: 7.5rem;
+  padding: 0.65rem 1.15rem !important;
+  border: 1px solid transparent !important;
+  border-radius: 9999px !important;
+  font-size: 0.78rem !important;
+  font-weight: 800 !important;
+  letter-spacing: 0 !important;
+  transition: transform 0.2s ease, filter 0.2s ease;
+}
+
+.og-modal-confirm:hover,
+.og-modal-cancel:hover,
+.og-modal-deny:hover {
+  filter: brightness(1.1);
+  transform: translateY(-1px);
+}
+
+.og-modal-confirm {
+  background: #10b981 !important;
+  color: #022c22 !important;
+}
+
+.og-modal-cancel {
+  border-color: #475569 !important;
+  background: #1e293b !important;
+  color: #cbd5e1 !important;
+}
+
+.og-modal-deny {
+  background: #e11d48 !important;
+  color: #fff1f2 !important;
+}

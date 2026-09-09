@@ -118,6 +118,7 @@ class GraphManager {
             inputPlaceholder: 'Ej. 5',
             showCancelButton: true,
             confirmButtonColor: '#10b981',
+            customClass: this.getModalClasses(),
             inputValidator: (value) => {
                 if (!value || isNaN(value) || parseFloat(value) <= 0) {
                     return 'Ingrese un número válido mayor a 0';
@@ -158,7 +159,8 @@ class GraphManager {
             confirmButtonColor: '#f43f5e',
             cancelButtonColor: '#64748b',
             confirmButtonText: 'Eliminar',
-            cancelButtonText: 'Cancelar'
+            cancelButtonText: 'Cancelar',
+            customClass: this.getModalClasses()
         });
 
         if (result.isConfirmed) {
@@ -197,7 +199,8 @@ class GraphManager {
             denyButtonText: '🗑️ Eliminar Arco',
             cancelButtonText: 'Cancelar',
             confirmButtonColor: '#3b82f6',
-            denyButtonColor: '#f43f5e'
+            denyButtonColor: '#f43f5e',
+            customClass: this.getModalClasses()
         });
 
         if (result.isConfirmed) {
@@ -208,6 +211,7 @@ class GraphManager {
                 inputValue: edge.weight,
                 showCancelButton: true,
                 confirmButtonColor: '#10b981',
+                customClass: this.getModalClasses(),
                 inputValidator: (val) => {
                     if (!val || isNaN(val) || parseFloat(val) <= 0) {
                         return 'Ingrese un número válido mayor a 0';
@@ -234,6 +238,18 @@ class GraphManager {
                 timer: 2000
             });
         }
+    }
+
+    getModalClasses() {
+        return {
+            popup: 'og-modal',
+            title: 'og-modal-title',
+            htmlContainer: 'og-modal-text',
+            input: 'og-modal-input',
+            confirmButton: 'og-modal-confirm',
+            cancelButton: 'og-modal-cancel',
+            denyButton: 'og-modal-deny'
+        };
     }
 
     highlightMST(mstEdges, tieEdges = []) {
