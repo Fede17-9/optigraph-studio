@@ -1,11 +1,41 @@
 /**
- * @fileoverview Gestor del lienzo interactivo Vis.js con soporte para
- * eliminación de nodos, edición/eliminación de arcos y prevención del menú nativo.
+ * @file js/graph-manager.js
+ * @module GraphManager
+ * @fileoverview Capa de presentación y edición del grafo. Centraliza los
+ * DataSet de Vis.js, los eventos del lienzo, los presets, la persistencia JSON,
+ * el menú contextual y los estilos de aristas del AEM.
  */
 
+/**
+ * Configuración visual de clases CSS utilizadas por SweetAlert2.
+ * @typedef {Object} ModalClasses
+ * @property {string} popup Clase del contenedor del modal.
+ * @property {string} title Clase del título.
+ * @property {string} htmlContainer Clase del contenido textual.
+ * @property {string} input Clase de los controles de entrada.
+ * @property {string} confirmButton Clase del botón de confirmación.
+ * @property {string} cancelButton Clase del botón de cancelación.
+ * @property {string} denyButton Clase del botón de rechazo o eliminación.
+ */
+
+/**
+ * Documento serializado de una red editable.
+ * @typedef {Object} GraphDocument
+ * @property {number} version Versión del formato de persistencia.
+ * @property {string} exportedAt Fecha de exportación en formato ISO 8601.
+ * @property {Object[]} nodes Nodos con identificador, etiqueta y posición.
+ * @property {Object[]} edges Aristas con extremos, peso y estilo.
+ */
+
+/**
+ * Administra el modelo visual y editable de la red en Vis.js.
+ * @class
+ */
 class GraphManager {
     /**
-     * @param {string} containerId ID del elemento HTML contenedor del lienzo.
+    * Gestor de la red Vis.js y de las operaciones de edición del grafo.
+    *
+    * @param {string} containerId ID del elemento HTML que alojará el lienzo.
      */
     constructor(containerId) {
         this.container = document.getElementById(containerId);
@@ -15,14 +45,23 @@ class GraphManager {
         this.mode = 'select'; // 'select', 'add-node', 'add-edge'
         this.selectedSourceNode = null;
         this.onNodeCountChange = null;
+        this.onGraphChange = null;
 
         this._initNetwork();
     }
 
+    /**
+     * Inicializa la instancia de Vis.Network, sus DataSet y opciones visuales.
+     * @private
+     * @returns {void}
+     */
     _initNetwork() {
-        // Bloquear menú contextual por defecto del navegador en el contenedor
+        // Bloquear el menú contextual del navegador para reservar el clic derecho
+        // a la edición de nodos y aristas mediante la API de Vis.js.
         this.container.addEventListener('contextmenu', (e) => e.preventDefault());
 
+        // Vis.js trabaja con DataSet reactivos: cualquier alta, baja o actualización
+        // se refleja automáticamente en el lienzo sin reconstruir la red.
         const data = { nodes: this.nodes, edges: this.edges };
         const options = {
             nodes: {
@@ -42,7 +81,9 @@ class GraphManager {
                 font: { color: '#f8fafc', size: 12, strokeWidth: 4, strokeColor: '#0f172a', align: 'top' },
                 smooth: { type: 'continuous' }
             },
-            physics: { enabled: false }, // Sin rebotes/física
+            // La posición se controla manualmente para conservar los presets y evitar
+            // que la física reposicione los nodos después de cada edición.
+            physics: { enabled: false },
             interaction: { 
                 hover: true, 
                 dragNodes: true, 
@@ -55,8 +96,14 @@ class GraphManager {
         this._bindEvents();
     }
 
+    /**
+     * Registra eventos de interacción y suscriptores de cambios de DataSet.
+     * @private
+     * @returns {void}
+     */
     _bindEvents() {
-        // Clic izquierdo (Agregar nodo o conectar arcos)
+        // El clic izquierdo sirve como herramienta contextual: agrega nodos libres
+        // o completa una conexión origen-destino según el modo seleccionado.
         this.network.on('click', (params) => {
             if (this.mode === 'add-node' && params.nodes.length === 0 && params.edges.length === 0) {
                 const clickPos = params.pointer.canvas;
@@ -80,7 +127,8 @@ class GraphManager {
             }
         });
 
-        // Clic derecho (Menú de edición/eliminación)
+        // El evento oncontext de Vis.js entrega coordenadas DOM; getNodeAt/getEdgeAt
+        // identifica el elemento bajo el puntero después de prevenir el menú nativo.
         this.network.on('oncontext', (params) => {
             const originalEvent = params.event?.srcEvent || params.event;
             if (originalEvent?.preventDefault) {
@@ -97,19 +145,45 @@ class GraphManager {
             }
         });
 
-        // Notificar cambios en la cantidad de nodos
+        // Notificar cambios reactivos de nodos y aristas a la capa de UI.
         this.nodes.on('*', () => {
             if (typeof this.onNodeCountChange === 'function') {
                 this.onNodeCountChange(this.nodes.length);
             }
+            this.notifyGraphChange();
+        });
+        this.edges.on('*', () => {
+            this.notifyGraphChange();
         });
     }
 
+    /**
+     * Notifica a la interfaz que el documento del grafo fue modificado.
+     * @returns {void}
+     */
+    notifyGraphChange() {
+        if (typeof this.onGraphChange === 'function') {
+            this.onGraphChange();
+        }
+    }
+
+    /**
+     * Agrega un nodo en coordenadas del lienzo Vis.js.
+     * @param {number} x Coordenada horizontal en el sistema canvas.
+     * @param {number} y Coordenada vertical en el sistema canvas.
+     * @returns {void}
+     */
     addNode(x, y) {
         const nextIdLetter = String.fromCharCode(65 + this.nodes.length);
         this.nodes.add({ id: nextIdLetter, label: nextIdLetter, x: x, y: y });
     }
 
+    /**
+     * Solicita el peso y crea una arista no dirigida entre dos nodos.
+     * @param {string|number} fromNode Identificador del nodo origen.
+     * @param {string|number} toNode Identificador del nodo destino.
+     * @returns {Promise<void>} Promesa resuelta cuando termina el modal.
+     */
     async promptAddEdge(fromNode, toNode) {
         const { value: weight } = await Swal.fire({
             title: `Conectar ${fromNode} ↔ ${toNode}`,
@@ -148,7 +222,9 @@ class GraphManager {
     }
 
     /**
-     * Modal para confirmar la eliminación de un solo nodo.
+     * Muestra un modal y elimina un nodo junto con sus aristas incidentes.
+     * @param {string|number} nodeId Identificador del nodo que se eliminará.
+     * @returns {Promise<void>} Promesa resuelta después de confirmar o cancelar.
      */
     async promptDeleteNode(nodeId) {
         const result = await Swal.fire({
@@ -164,11 +240,11 @@ class GraphManager {
         });
 
         if (result.isConfirmed) {
-            // Eliminar arcos conectados al nodo
+            // Eliminar todas las aristas incidentes antes de retirar el nodo.
             const connectedEdges = this.edges.get().filter(e => e.from === nodeId || e.to === nodeId);
             connectedEdges.forEach(e => this.edges.remove(e.id));
             
-            // Eliminar el nodo
+            // Eliminar el nodo del DataSet; el contador reacciona al evento de cambio.
             this.nodes.remove(nodeId);
 
             Swal.fire({
@@ -183,7 +259,9 @@ class GraphManager {
     }
 
     /**
-     * Modal para modificar el peso o borrar un arco individual.
+     * Permite modificar el peso o eliminar una arista desde el menú contextual.
+     * @param {string|number} edgeId Identificador de la arista seleccionada.
+     * @returns {Promise<void>} Promesa resuelta al finalizar la operación.
      */
     async promptManageEdge(edgeId) {
         const edge = this.edges.get(edgeId);
@@ -204,7 +282,7 @@ class GraphManager {
         });
 
         if (result.isConfirmed) {
-            // Modificar peso
+            // Solicitar un nuevo peso y actualizar la etiqueta visible de la arista.
             const { value: newWeight } = await Swal.fire({
                 title: 'Nuevo Peso del Arco',
                 input: 'number',
@@ -227,7 +305,7 @@ class GraphManager {
                 });
             }
         } else if (result.isDenied) {
-            // Eliminar arco
+            // Eliminar únicamente esta conexión del DataSet de Vis.js.
             this.edges.remove(edgeId);
             Swal.fire({
                 toast: true,
@@ -240,6 +318,10 @@ class GraphManager {
         }
     }
 
+    /**
+     * Devuelve las clases visuales compartidas por los modales SweetAlert2.
+     * @returns {ModalClasses} Mapa de clases CSS para cada región del modal.
+     */
     getModalClasses() {
         return {
             popup: 'og-modal',
@@ -252,6 +334,82 @@ class GraphManager {
         };
     }
 
+    /**
+     * Construye una copia serializable de la red editable actual.
+     * @returns {GraphDocument} Documento JSON con nodos y aristas.
+     */
+    getGraphData() {
+        return {
+            version: 1,
+            exportedAt: new Date().toISOString(),
+            nodes: JSON.parse(JSON.stringify(this.nodes.get())),
+            edges: JSON.parse(JSON.stringify(this.edges.get()))
+        };
+    }
+
+    /**
+     * Valida y carga una red serializada desde un archivo JSON.
+     * @param {GraphDocument} graphData Documento de red previamente exportado.
+     * @returns {void}
+     * @throws {Error} Cuando la estructura, identificadores o pesos son inválidos.
+     */
+    importGraph(graphData) {
+        if (!graphData || !Array.isArray(graphData.nodes) || !Array.isArray(graphData.edges)) {
+            throw new Error('El archivo no contiene una red válida.');
+        }
+
+        const nodeIds = new Set(graphData.nodes.map(node => String(node.id)));
+        if (nodeIds.size !== graphData.nodes.length || graphData.nodes.some(node => node.id === undefined || node.id === null)) {
+            throw new Error('La red contiene nodos inválidos o identificadores repetidos.');
+        }
+
+        const importedEdges = graphData.edges.map(edge => ({
+            ...edge,
+            weight: Number(edge.weight),
+            label: edge.label ?? String(edge.weight)
+        }));
+        const hasInvalidEdge = importedEdges.some(edge =>
+            edge.id === undefined ||
+            edge.from === undefined ||
+            edge.to === undefined ||
+            !nodeIds.has(String(edge.from)) ||
+            !nodeIds.has(String(edge.to)) ||
+            !Number.isFinite(edge.weight) ||
+            edge.weight <= 0
+        );
+
+        if (hasInvalidEdge) {
+            throw new Error('La red contiene conexiones inválidas o pesos no permitidos.');
+        }
+
+        this.clear();
+        this.nodes.add(graphData.nodes);
+        this.edges.add(importedEdges);
+        this.network.fit({ animation: { duration: 400, easingFunction: 'easeInOutQuad' } });
+    }
+
+    /**
+     * Restablece el estilo base de todas las aristas sin borrar el grafo.
+     * @returns {void}
+     */
+    resetVisualStyles() {
+        this.edges.update(this.edges.get().map(edge => ({
+            id: edge.id,
+            color: { color: '#64748b', highlight: '#f59e0b' },
+            width: 2,
+            dashes: false
+        })));
+    }
+
+    /**
+     * Resalta el AEM y sus alternativas empatadas en Vis.js.
+     * Las aristas seleccionadas usan línea verde sólida; las alternativas de
+     * igual peso usan línea azul discontinua; las restantes quedan atenuadas.
+     *
+     * @param {Array<{id: string|number}>} mstEdges Aristas pertenecientes al AEM.
+     * @param {Array<{id: string|number}>} [tieEdges=[]] Aristas alternativas empatadas.
+     * @returns {void}
+     */
     highlightMST(mstEdges, tieEdges = []) {
         const mstEdgeIds = new Set(mstEdges.map(e => e.id));
         const tieEdgeIds = new Set(tieEdges.map(e => e.id));
@@ -274,6 +432,11 @@ class GraphManager {
         this.edges.update(updatedEdges);
     }
 
+    /**
+     * Carga uno de los escenarios académicos predefinidos y ajusta el lienzo.
+     * @param {string} presetKey Clave del preset (`red1`, `red2` o `red3`).
+     * @returns {void}
+     */
     loadPresetNetwork(presetKey) {
         this.clear();
 
@@ -398,6 +561,10 @@ class GraphManager {
         }, 100);
     }
 
+    /**
+     * Elimina todos los nodos y aristas y cancela una selección de conexión.
+     * @returns {void}
+     */
     clear() {
         this.nodes.clear();
         this.edges.clear();

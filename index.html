@@ -32,9 +32,9 @@
     </nav>
   </header>
 
-  <div class="flex flex-1 overflow-hidden">
+  <div id="workspace-layout" class="flex flex-1 overflow-hidden">
     
-    <aside class="w-64 bg-slate-800 border-r border-slate-700 p-4 flex flex-col justify-between">
+    <aside id="tools-panel" class="responsive-panel w-64 bg-slate-800 border-r border-slate-700 p-4 flex flex-col justify-between">
       <div class="space-y-4">
         <h2 class="text-xs font-bold uppercase tracking-wider text-slate-400">Herramientas de Edición</h2>
         
@@ -49,6 +49,14 @@
             <span>🗑️</span> <span>Limpiar Red</span>
           </button>
         </div>
+
+        <div class="grid grid-cols-2 gap-2">
+          <button id="btn-import" class="tool-action-button" type="button"><span>↥</span> Importar</button>
+          <button id="btn-export-network" class="tool-action-button" type="button"><span>↧</span> Exportar red</button>
+          <button id="btn-export-result" class="tool-action-button" type="button"><span>▣</span> Exportar AEM</button>
+          <button id="btn-reset-view" class="tool-action-button" type="button"><span>↺</span> Restablecer</button>
+        </div>
+        <input id="graph-file-input" type="file" accept="application/json,.json" hidden>
 
         <div class="p-2.5 bg-slate-900/70 rounded-lg border border-slate-700 text-[11px] text-slate-400">
           💡 <span class="font-semibold text-slate-300">Tip de Edición:</span> Clic derecho sobre un nodo o conexión para eliminarlo o cambiar su peso.
@@ -71,28 +79,45 @@
     </aside>
 
     <main class="flex-1 relative bg-slate-950 flex flex-col">
+      <div class="mobile-panel-controls">
+        <button id="btn-toggle-tools" type="button">☰ Herramientas</button>
+        <button id="btn-toggle-procedure" type="button">☷ Procedimiento</button>
+      </div>
       <div id="canvas-container" class="w-full flex-1"></div>
+      <div class="graph-legend" aria-label="Leyenda del grafo">
+        <span><i class="legend-line legend-line-mst"></i>AEM</span>
+        <span><i class="legend-line legend-line-tie"></i>Empate</span>
+        <span><i class="legend-line legend-line-other"></i>Sin seleccionar</span>
+      </div>
 
-      <footer class="bg-slate-800 border-t border-slate-700 px-6 py-3 flex justify-between items-center">
+      <footer class="app-footer bg-slate-800 border-t border-slate-700 px-6 py-3">
         <div class="flex items-center space-x-4">
           <span id="status-indicator" class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-slate-700 text-slate-300">
             ⚪ Esperando red...
           </span>
         </div>
-        <div class="flex items-center gap-4">
-          <div class="flex items-center space-x-2">
-            <span class="text-xs text-slate-400 uppercase font-semibold">Cantidad de Nodos:</span>
-            <span id="node-count" class="text-xl font-black text-sky-400 font-mono bg-slate-900 px-3 py-1 rounded-lg border border-slate-700">0</span>
+        <div class="footer-metrics">
+          <div class="footer-metric">
+            <span class="footer-metric-label">Nodos</span>
+            <span id="node-count" class="footer-metric-value text-sky-400">0</span>
           </div>
-          <div class="flex items-center space-x-2">
-            <span class="text-xs text-slate-400 uppercase font-semibold">Peso Total AEM:</span>
-            <span id="total-weight" class="text-xl font-black text-emerald-400 font-mono bg-slate-900 px-3 py-1 rounded-lg border border-slate-700">—</span>
+          <div class="footer-metric">
+            <span class="footer-metric-label">Peso total AEM</span>
+            <span id="total-weight" class="footer-metric-value text-emerald-400">—</span>
+          </div>
+          <div class="footer-metric">
+            <span class="footer-metric-label">Iteraciones</span>
+            <span id="iteration-count" class="footer-metric-value">—</span>
+          </div>
+          <div class="footer-metric">
+            <span class="footer-metric-label">Empates</span>
+            <span id="tie-count" class="footer-metric-value">—</span>
           </div>
         </div>
       </footer>
     </main>
 
-    <aside class="w-96 bg-slate-800 border-l border-slate-700 flex flex-col">
+    <aside id="procedure-panel" class="responsive-panel w-96 bg-slate-800 border-l border-slate-700 flex flex-col">
       <div class="p-4 border-b border-slate-700">
         <h2 class="text-sm font-bold text-slate-200">Procedimiento Paso a Paso</h2>
         <p class="text-xs text-slate-400">Evolución de los conjuntos k, C<sub>k</sub> y C̄<sub>k</sub></p>
