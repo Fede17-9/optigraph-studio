@@ -285,6 +285,8 @@
   main { order: 2; min-height: 58vh; }
   #procedure-panel { order: 3; max-height: 46vh; }
 
+  .tools-panel-content { overflow: visible; }
+
   .mobile-panel-controls {
     display: flex;
     gap: 0.5rem;
@@ -319,4 +321,42 @@
   .footer-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .footer-metric { grid-template-columns: minmax(0, 1fr) auto; }
   .graph-legend { font-size: 0.62rem; }
+}
+
+.tool-action-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
+}
+
+#tools-panel {
+  min-height: 0;
+}
+
+.tools-panel-content {
+  min-height: 0;
+  overflow-y: auto;
+  padding-right: 0.15rem;
+  padding-bottom: 0.75rem;
+}
+
+.solve-button {
+  flex: 0 0 auto;
+  min-height: 3rem;
+  margin-top: 0.75rem;
+}
+
+.og-form-label {
+  display: block;
+  margin: 0.65rem 0 0.25rem;
+  color: #94a3b8;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-align: left;
+}
+
+.og-modal .og-modal-input {
+  width: 100%;
+  margin: 0 0 0.35rem;
+  padding: 0.65rem 0.8rem;
+  border-radius: 0.75rem;
 }

@@ -16,6 +16,10 @@ Este módulo permite diseñar redes no dirigidas personalizadas y resolver el Á
    * **Conectar Nodos (Arco):** Seleccione el modo `[+ Conectar Arco]`, haga clic en el nodo de origen y luego en el nodo de destino. Ingrese el peso/valor del arco en la ventana emergente.
    * **Editar o Eliminar:** Active el modo `[Editar / Eliminar]` para cambiar el valor de una rama o remover elementos no deseados.
    * **Carga Rápida (Ejemplos):** Utilice el desplegable `[Cargar Redes de Prueba]` para instanciar automáticamente las redes analizadas en clase (Red 1, Red 2 o Red 3).
+   * **Red vacía:** Cree entre 2 y 50 nodos distribuidos automáticamente para conectarlos manualmente.
+   * **Red aleatoria:** Genere una red conexa indicando nodos, densidad adicional y peso máximo.
+   * **Importar:** El importador detecta tanto redes simples como resultados AEM completos y restaura su solución e historial.
+   * **Deshacer/Rehacer:** Recupere o repita cambios de edición, cargas y generaciones de redes.
 
 2. **Ejecución y Resultados:**
    * Haga clic en `[⚡ Resolver AEM]`.
@@ -23,6 +27,8 @@ Este módulo permite diseñar redes no dirigidas personalizadas y resolver el Á
    * Si la red es conexa, se iluminarán en **verde fluorescente** los arcos seleccionados y en **gris tenue** los descartados.
    * En el panel derecho de **Pasos del Algoritmo**, se detallará la evolución formal de los conjuntos $k, C_k, \overline{C}_k$, el arco evaluado y su respectivo peso.
    * En el panel inferior se mostrará el **Peso Total Sumado** del árbol resultante.
+   * **Exportar red** guarda la estructura editable; **Exportar AEM** guarda la red, la solución y el historial de Prim.
+   * **Reporte** descarga un documento HTML imprimible que puede guardarse como PDF desde el navegador.
 
 ---
 
@@ -31,3 +37,4 @@ Este módulo permite diseñar redes no dirigidas personalizadas y resolver el Á
 * **Lógica del Algoritmo:** Implementación del Algoritmo de Prim en JavaScript ES6 con verificación de conexidad vía Búsqueda en Profundidad (DFS).
 * **Renderizado Gráfico:** Librería `Vis-Network` con motor de física y manipulación dinámicos.
 * **Buenas Prácticas de Código:** Arquitectura modular orientada a objetos (JSDoc, estándar ES6 Clean Code equivalente a PEP-8).
+* **Persistencia:** Documentos JSON versionados para redes editables y resultados AEM.

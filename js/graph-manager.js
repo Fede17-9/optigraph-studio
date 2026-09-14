@@ -46,8 +46,12 @@ class GraphManager {
         this.selectedSourceNode = null;
         this.onNodeCountChange = null;
         this.onGraphChange = null;
+        this._history = [];
+        this._historyIndex = -1;
+        this._historySuspended = false;
 
         this._initNetwork();
+        this._recordHistory();
     }
 
     /**
@@ -168,14 +172,184 @@ class GraphManager {
     }
 
     /**
+     * Captura el estado actual para permitir deshacer y rehacer ediciones.
+     * @private
+     * @returns {void}
+     */
+    _recordHistory() {
+        if (this._historySuspended) return;
+
+        const snapshot = {
+            nodes: JSON.parse(JSON.stringify(this.nodes.get())),
+            edges: JSON.parse(JSON.stringify(this.edges.get()))
+        };
+        const current = this._history[this._historyIndex];
+        if (current && JSON.stringify(current) === JSON.stringify(snapshot)) return;
+
+        this._history = this._history.slice(0, this._historyIndex + 1);
+        this._history.push(snapshot);
+        this._historyIndex = this._history.length - 1;
+    }
+
+    /**
+     * Restaura un snapshot interno sin generar otra entrada de historial.
+     * @private
+     * @param {{nodes: Object[], edges: Object[]}} snapshot Estado serializado.
+     * @returns {void}
+     */
+    _restoreSnapshot(snapshot) {
+        this._historySuspended = true;
+        this.nodes.clear();
+        this.edges.clear();
+        this.nodes.add(snapshot.nodes);
+        this.edges.add(snapshot.edges);
+        this._historySuspended = false;
+        this.network.fit({ animation: { duration: 250, easingFunction: 'easeInOutQuad' } });
+        this.notifyGraphChange();
+    }
+
+    /**
+     * Deshace la última modificación de la red.
+     * @returns {boolean} Verdadero si se restauró un estado anterior.
+     */
+    undo() {
+        if (this._historyIndex <= 0) return false;
+        this._historyIndex--;
+        this._restoreSnapshot(this._history[this._historyIndex]);
+        return true;
+    }
+
+    /**
+     * Rehace una modificación previamente deshecha.
+     * @returns {boolean} Verdadero si se restauró un estado posterior.
+     */
+    redo() {
+        if (this._historyIndex >= this._history.length - 1) return false;
+        this._historyIndex++;
+        this._restoreSnapshot(this._history[this._historyIndex]);
+        return true;
+    }
+
+    /**
+     * Indica si existe un estado disponible para deshacer.
+     * @returns {boolean} Verdadero cuando hay una edición anterior.
+     */
+    canUndo() {
+        return this._historyIndex > 0;
+    }
+
+    /**
+     * Indica si existe un estado disponible para rehacer.
+     * @returns {boolean} Verdadero cuando hay una edición posterior.
+     */
+    canRedo() {
+        return this._historyIndex < this._history.length - 1;
+    }
+
+    /**
+     * Genera identificadores legibles para redes creadas automáticamente.
+     * @param {number} index Índice base cero del nodo.
+     * @returns {string} Identificador alfabético o numérico estable.
+     */
+    createGeneratedNodeId(index) {
+        return index < 26 ? String.fromCharCode(65 + index) : `N${index + 1}`;
+    }
+
+    /**
+     * Crea una red con nodos distribuidos y sin conexiones.
+     * @param {number} nodeCount Cantidad de nodos entre 2 y 50.
+     * @returns {void}
+     * @throws {Error} Cuando la cantidad está fuera del rango permitido.
+     */
+    createEmptyNetwork(nodeCount) {
+        if (!Number.isInteger(nodeCount) || nodeCount < 2 || nodeCount > 50) {
+            throw new Error('La cantidad de nodos debe estar entre 2 y 50.');
+        }
+
+        this._recordHistory();
+        this.clear(false);
+        this.nodes.add(Array.from({ length: nodeCount }, (_, index) => {
+            const angle = (index / nodeCount) * Math.PI * 2;
+            const radius = Math.min(260, 80 + nodeCount * 5);
+            const id = this.createGeneratedNodeId(index);
+            return {
+                id,
+                label: id,
+                x: Math.cos(angle) * radius,
+                y: Math.sin(angle) * radius
+            };
+        }));
+        this.network.fit({ animation: { duration: 400, easingFunction: 'easeInOutQuad' } });
+        this._recordHistory();
+    }
+
+    /**
+     * Genera una red aleatoria conexa con pesos positivos.
+     * Primero crea un árbol de expansión aleatorio y luego agrega aristas según
+     * la densidad solicitada, garantizando que el resultado sea conexo.
+     * @param {number} nodeCount Cantidad de nodos entre 2 y 50.
+     * @param {number} density Proporción de aristas adicionales entre 0 y 1.
+     * @param {number} maxWeight Peso máximo entero de las aristas.
+     * @returns {void}
+     */
+    createRandomNetwork(nodeCount, density = 0.35, maxWeight = 20) {
+        if (!Number.isInteger(nodeCount) || nodeCount < 2 || nodeCount > 50) {
+            throw new Error('La cantidad de nodos debe estar entre 2 y 50.');
+        }
+        if (!Number.isFinite(density) || density < 0 || density > 1) {
+            throw new Error('La densidad debe estar entre 0 y 1.');
+        }
+        if (!Number.isInteger(maxWeight) || maxWeight < 1 || maxWeight > 999) {
+            throw new Error('El peso máximo debe estar entre 1 y 999.');
+        }
+
+        this._recordHistory();
+        this.clear(false);
+        const nodes = Array.from({ length: nodeCount }, (_, index) => {
+            const angle = (index / nodeCount) * Math.PI * 2;
+            const radius = Math.min(260, 80 + nodeCount * 5);
+            const id = this.createGeneratedNodeId(index);
+            return { id, label: id, x: Math.cos(angle) * radius, y: Math.sin(angle) * radius };
+        });
+        const edges = [];
+        const edgeKeys = new Set();
+        const addRandomEdge = (from, to) => {
+            const key = [from, to].sort().join('|');
+            if (edgeKeys.has(key)) return;
+            edgeKeys.add(key);
+            const weight = Math.floor(Math.random() * maxWeight) + 1;
+            edges.push({ id: `${from}-${to}`, from, to, label: String(weight), weight });
+        };
+
+        // Árbol base: conecta cada nodo nuevo con uno ya incorporado.
+        for (let index = 1; index < nodeCount; index++) {
+            const parentIndex = Math.floor(Math.random() * index);
+            addRandomEdge(nodes[index].id, nodes[parentIndex].id);
+        }
+        // Aristas adicionales: aumentan la variedad sin sacrificar conexidad.
+        for (let fromIndex = 0; fromIndex < nodeCount; fromIndex++) {
+            for (let toIndex = fromIndex + 1; toIndex < nodeCount; toIndex++) {
+                if (Math.random() < density) addRandomEdge(nodes[fromIndex].id, nodes[toIndex].id);
+            }
+        }
+
+        this.nodes.add(nodes);
+        this.edges.add(edges);
+        this.network.fit({ animation: { duration: 400, easingFunction: 'easeInOutQuad' } });
+        this._recordHistory();
+    }
+
+    /**
      * Agrega un nodo en coordenadas del lienzo Vis.js.
      * @param {number} x Coordenada horizontal en el sistema canvas.
      * @param {number} y Coordenada vertical en el sistema canvas.
      * @returns {void}
      */
     addNode(x, y) {
+        this._recordHistory();
         const nextIdLetter = String.fromCharCode(65 + this.nodes.length);
         this.nodes.add({ id: nextIdLetter, label: nextIdLetter, x: x, y: y });
+        this._recordHistory();
     }
 
     /**
@@ -211,6 +385,7 @@ class GraphManager {
                 return;
             }
 
+            this._recordHistory();
             this.edges.add({
                 id: edgeId,
                 from: fromNode,
@@ -218,6 +393,7 @@ class GraphManager {
                 label: String(weight),
                 weight: parseFloat(weight)
             });
+            this._recordHistory();
         }
     }
 
@@ -240,12 +416,14 @@ class GraphManager {
         });
 
         if (result.isConfirmed) {
+            this._recordHistory();
             // Eliminar todas las aristas incidentes antes de retirar el nodo.
             const connectedEdges = this.edges.get().filter(e => e.from === nodeId || e.to === nodeId);
             connectedEdges.forEach(e => this.edges.remove(e.id));
             
             // Eliminar el nodo del DataSet; el contador reacciona al evento de cambio.
             this.nodes.remove(nodeId);
+            this._recordHistory();
 
             Swal.fire({
                 toast: true,
@@ -298,15 +476,19 @@ class GraphManager {
             });
 
             if (newWeight) {
+                this._recordHistory();
                 this.edges.update({
                     id: edgeId,
                     label: String(newWeight),
                     weight: parseFloat(newWeight)
                 });
+                this._recordHistory();
             }
         } else if (result.isDenied) {
+            this._recordHistory();
             // Eliminar únicamente esta conexión del DataSet de Vis.js.
             this.edges.remove(edgeId);
+            this._recordHistory();
             Swal.fire({
                 toast: true,
                 position: 'top-end',
@@ -354,16 +536,20 @@ class GraphManager {
      * @throws {Error} Cuando la estructura, identificadores o pesos son inválidos.
      */
     importGraph(graphData) {
-        if (!graphData || !Array.isArray(graphData.nodes) || !Array.isArray(graphData.edges)) {
+        const document = graphData?.graph && graphData?.result
+            ? { ...graphData.graph, result: graphData.result }
+            : graphData;
+
+        if (!document || !Array.isArray(document.nodes) || !Array.isArray(document.edges)) {
             throw new Error('El archivo no contiene una red válida.');
         }
 
-        const nodeIds = new Set(graphData.nodes.map(node => String(node.id)));
-        if (nodeIds.size !== graphData.nodes.length || graphData.nodes.some(node => node.id === undefined || node.id === null)) {
+        const nodeIds = new Set(document.nodes.map(node => String(node.id)));
+        if (nodeIds.size !== document.nodes.length || document.nodes.some(node => node.id === undefined || node.id === null)) {
             throw new Error('La red contiene nodos inválidos o identificadores repetidos.');
         }
 
-        const importedEdges = graphData.edges.map(edge => ({
+        const importedEdges = document.edges.map(edge => ({
             ...edge,
             weight: Number(edge.weight),
             label: edge.label ?? String(edge.weight)
@@ -382,10 +568,17 @@ class GraphManager {
             throw new Error('La red contiene conexiones inválidas o pesos no permitidos.');
         }
 
-        this.clear();
-        this.nodes.add(graphData.nodes);
+        this._recordHistory();
+        this.clear(false);
+        this.nodes.add(document.nodes);
         this.edges.add(importedEdges);
+        this._recordHistory();
         this.network.fit({ animation: { duration: 400, easingFunction: 'easeInOutQuad' } });
+
+        return document.result ? {
+            startNode: document.result.startNode,
+            result: document.result
+        } : null;
     }
 
     /**
@@ -438,7 +631,8 @@ class GraphManager {
      * @returns {void}
      */
     loadPresetNetwork(presetKey) {
-        this.clear();
+        this._recordHistory();
+        this.clear(false);
 
         if (presetKey === 'red1') {
             this.nodes.add([
@@ -556,6 +750,8 @@ class GraphManager {
             ]);
         }
 
+        this._recordHistory();
+
         setTimeout(() => {
             this.network.fit({ animation: { duration: 400, easingFunction: 'easeInOutQuad' } });
         }, 100);
@@ -565,9 +761,11 @@ class GraphManager {
      * Elimina todos los nodos y aristas y cancela una selección de conexión.
      * @returns {void}
      */
-    clear() {
+    clear(recordHistory = true) {
+        if (recordHistory) this._recordHistory();
         this.nodes.clear();
         this.edges.clear();
         this.selectedSourceNode = null;
+        if (recordHistory) this._recordHistory();
     }
 }

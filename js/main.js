@@ -34,11 +34,26 @@ document.addEventListener("DOMContentLoaded", () => {
     const btnExportNetwork = document.getElementById("btn-export-network");
     const btnExportResult = document.getElementById("btn-export-result");
     const btnResetView = document.getElementById("btn-reset-view");
+    const btnEmptyNetwork = document.getElementById("btn-empty-network");
+    const btnRandomNetwork = document.getElementById("btn-random-network");
+    const btnUndo = document.getElementById("btn-undo");
+    const btnRedo = document.getElementById("btn-redo");
+    const btnExportReport = document.getElementById("btn-export-report");
     const graphFileInput = document.getElementById("graph-file-input");
     const iterationCountEl = document.getElementById("iteration-count");
     const tieCountEl = document.getElementById("tie-count");
     const toolsPanel = document.getElementById("tools-panel");
     const procedurePanel = document.getElementById("procedure-panel");
+
+    const modalClasses = graphManager.getModalClasses();
+
+    const updateHistoryButtons = () => {
+        btnUndo.disabled = !graphManager.canUndo();
+        btnRedo.disabled = !graphManager.canRedo();
+    };
+
+    graphManager.onGraphChange = updateHistoryButtons;
+    updateHistoryButtons();
 
     btnAddNode.addEventListener("click", () => {
         graphManager.mode = 'add-node';
@@ -75,6 +90,78 @@ document.addEventListener("DOMContentLoaded", () => {
     selectDemo.addEventListener("change", (e) => {
         graphManager.loadPresetNetwork(e.target.value);
         resetUI();
+        updateHistoryButtons();
+    });
+
+    btnEmptyNetwork.addEventListener("click", async () => {
+        const { value: nodeCount } = await Swal.fire({
+            title: 'Crear red vacía',
+            text: 'Indique cuántos nodos desea colocar en el lienzo.',
+            input: 'number',
+            inputValue: 6,
+            inputAttributes: { min: 2, max: 50, step: 1 },
+            showCancelButton: true,
+            confirmButtonText: 'Crear red',
+            cancelButtonText: 'Cancelar',
+            confirmButtonColor: '#10b981',
+            customClass: modalClasses,
+            inputValidator: value => {
+                if (!Number.isInteger(Number(value)) || Number(value) < 2 || Number(value) > 50) {
+                    return 'Ingrese un número entero entre 2 y 50.';
+                }
+            }
+        });
+        if (!nodeCount) return;
+        graphManager.createEmptyNetwork(Number(nodeCount));
+        resetUI();
+        updateHistoryButtons();
+        setActiveToolButton(btnAddEdge);
+        graphManager.mode = 'add-edge';
+        Swal.fire({ toast: true, position: 'top-end', icon: 'info', title: 'Red creada. Conecte sus nodos.', showConfirmButton: false, timer: 2500 });
+    });
+
+    btnRandomNetwork.addEventListener("click", async () => {
+        const { value: randomConfig } = await Swal.fire({
+            title: 'Generar red aleatoria',
+            html: `
+                <label class="og-form-label" for="random-node-count">Cantidad de nodos</label>
+                <input id="random-node-count" class="og-modal-input" type="number" min="2" max="50" value="8">
+                <label class="og-form-label" for="random-density">Densidad adicional (%)</label>
+                <input id="random-density" class="og-modal-input" type="number" min="0" max="100" value="35">
+                <label class="og-form-label" for="random-max-weight">Peso máximo</label>
+                <input id="random-max-weight" class="og-modal-input" type="number" min="1" max="999" value="20">
+            `,
+            showCancelButton: true,
+            confirmButtonText: 'Generar red',
+            cancelButtonText: 'Cancelar',
+            confirmButtonColor: '#10b981',
+            customClass: modalClasses,
+            preConfirm: () => {
+                const nodeCount = Number(document.getElementById('random-node-count').value);
+                const density = Number(document.getElementById('random-density').value);
+                const maxWeight = Number(document.getElementById('random-max-weight').value);
+                if (!Number.isInteger(nodeCount) || nodeCount < 2 || nodeCount > 50 || density < 0 || density > 100 || !Number.isInteger(maxWeight) || maxWeight < 1 || maxWeight > 999) {
+                    Swal.showValidationMessage('Revise los valores: nodos 2-50, densidad 0-100 y peso 1-999.');
+                    return null;
+                }
+                return { nodeCount, density: density / 100, maxWeight };
+            }
+        });
+        if (!randomConfig) return;
+        graphManager.createRandomNetwork(randomConfig.nodeCount, randomConfig.density, randomConfig.maxWeight);
+        resetUI();
+        updateHistoryButtons();
+        Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: 'Red aleatoria conexa generada', showConfirmButton: false, timer: 2200 });
+    });
+
+    btnUndo.addEventListener("click", () => {
+        if (graphManager.undo()) resetUI();
+        updateHistoryButtons();
+    });
+
+    btnRedo.addEventListener("click", () => {
+        if (graphManager.redo()) resetUI();
+        updateHistoryButtons();
     });
 
     btnImport.addEventListener("click", () => graphFileInput.click());
@@ -85,8 +172,14 @@ document.addEventListener("DOMContentLoaded", () => {
 
         try {
             const graphData = JSON.parse(await file.text());
-            graphManager.importGraph(graphData);
+            const importedSolution = graphManager.importGraph(graphData);
             resetUI();
+            if (importedSolution?.result) {
+                lastSolveResult = importedSolution.result;
+                lastStartNode = importedSolution.startNode;
+                restoreSolutionView(importedSolution.result);
+            }
+            updateHistoryButtons();
             Swal.fire({
                 toast: true,
                 position: 'top-end',
@@ -141,6 +234,14 @@ document.addEventListener("DOMContentLoaded", () => {
                 stepTable: lastSolveResult.stepTable
             }
         });
+    });
+
+    btnExportReport.addEventListener("click", () => {
+        if (!lastSolveResult) {
+            Swal.fire({ icon: 'info', title: 'Aún no hay un AEM calculado', text: 'Resuelva la red antes de exportar el reporte.', confirmButtonColor: '#10b981', customClass: modalClasses });
+            return;
+        }
+        downloadReport('optigraph-reporte-aem.html', graphManager.getGraphData(), lastStartNode, lastSolveResult);
     });
 
     btnResetView.addEventListener("click", () => {
@@ -215,19 +316,7 @@ document.addEventListener("DOMContentLoaded", () => {
             lastSolveResult = result;
             lastStartNode = selectedStartNode;
 
-            // 1. Transferir la solución a Vis.js: AEM sólido y empates punteados.
-            graphManager.highlightMST(result.selectedEdges, result.tiedEdges);
-
-            // 2. Renderizar la bitácora de conjuntos C_k, C̄_k y decisiones.
-            renderProcedureSteps(result.stepTable);
-
-            // 3. Actualizar estado, costo total, iteraciones y cantidad de empates.
-            const statusEl = document.getElementById("status-indicator");
-            statusEl.className = "inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-emerald-900/60 text-emerald-300 border border-emerald-600 shadow-sm";
-            statusEl.innerText = "🟢 RED CONEXA — AEM CALCULADO";
-            if (totalWeightEl) totalWeightEl.innerText = `${result.totalWeight} u`;
-            if (iterationCountEl) iterationCountEl.innerText = result.stepTable.length;
-            if (tieCountEl) tieCountEl.innerText = result.tiedEdges.length;
+            restoreSolutionView(result);
 
             Swal.fire({
                 icon: 'success',
@@ -291,6 +380,23 @@ document.addEventListener("DOMContentLoaded", () => {
         const statusEl = document.getElementById("status-indicator");
         statusEl.className = "inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-slate-700 text-slate-300";
         statusEl.innerText = "⚪ Esperando red...";
+        updateHistoryButtons();
+    }
+
+    /**
+     * Restaura en la interfaz una solución AEM importada o recién calculada.
+     * @param {Object} result Resultado producido por MSTSolver.
+     * @returns {void}
+     */
+    function restoreSolutionView(result) {
+        graphManager.highlightMST(result.selectedEdges, result.tiedEdges);
+        renderProcedureSteps(result.stepTable);
+        const statusEl = document.getElementById("status-indicator");
+        statusEl.className = "inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-emerald-900/60 text-emerald-300 border border-emerald-600 shadow-sm";
+        statusEl.innerText = "🟢 RED CONEXA — AEM CALCULADO";
+        if (totalWeightEl) totalWeightEl.innerText = `${result.totalWeight} u`;
+        if (iterationCountEl) iterationCountEl.innerText = result.stepTable.length;
+        if (tieCountEl) tieCountEl.innerText = result.tiedEdges.length;
     }
 });
 
@@ -349,4 +455,27 @@ function renderProcedureSteps(stepTable) {
         `;
         container.appendChild(stepCard);
     });
+}
+
+/**
+ * Genera un reporte HTML autocontenido que puede abrirse o imprimirse como PDF.
+ * @param {string} filename Nombre del archivo descargado.
+ * @param {Object} graphData Red utilizada en la solución.
+ * @param {string|number} startNode Nodo inicial de Prim.
+ * @param {Object} result Resultado completo del AEM.
+ * @returns {void}
+ */
+function downloadReport(filename, graphData, startNode, result) {
+    const steps = result.stepTable.map(step => `
+        <tr><td>${step.iteration}</td><td>{ ${step.Ck} }</td><td>{ ${step.Cbar} }</td><td>${step.selectedEdge}</td><td>${step.weight}</td><td>${step.tieDescription || '—'}</td></tr>
+    `).join('');
+    const report = `<!doctype html><html lang="es"><head><meta charset="UTF-8"><title>Reporte AEM</title><style>body{font-family:Arial,sans-serif;color:#0f172a;max-width:1100px;margin:2rem auto;padding:0 1rem}h1{color:#047857}table{border-collapse:collapse;width:100%;font-size:12px}th,td{border:1px solid #cbd5e1;padding:8px;text-align:left}th{background:#d1fae5}.summary{display:flex;gap:2rem;margin:1rem 0;font-weight:bold}</style></head><body><h1>OptiGraph Studio — Reporte AEM</h1><div class="summary"><span>Nodo inicial: ${startNode}</span><span>Peso total: ${result.totalWeight}</span><span>Iteraciones: ${result.stepTable.length}</span><span>Empates: ${result.tiedEdges.length}</span></div><p>Nodos: ${graphData.nodes.length} · Aristas: ${graphData.edges.length}</p><table><thead><tr><th>Paso</th><th>C_k</th><th>C̄_k</th><th>Arista elegida</th><th>Peso</th><th>Empate</th></tr></thead><tbody>${steps}</tbody></table></body></html>`;
+    const blob = new Blob([report], { type: 'text/html;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    setTimeout(() => { URL.revokeObjectURL(url); link.remove(); }, 100);
 }

@@ -34,8 +34,8 @@
 
   <div id="workspace-layout" class="flex flex-1 overflow-hidden">
     
-    <aside id="tools-panel" class="responsive-panel w-64 bg-slate-800 border-r border-slate-700 p-4 flex flex-col justify-between">
-      <div class="space-y-4">
+    <aside id="tools-panel" class="responsive-panel w-64 bg-slate-800 border-r border-slate-700 p-4 flex flex-col">
+      <div class="tools-panel-content space-y-4">
         <h2 class="text-xs font-bold uppercase tracking-wider text-slate-400">Herramientas de Edición</h2>
         
         <div class="space-y-2">
@@ -51,9 +51,17 @@
         </div>
 
         <div class="grid grid-cols-2 gap-2">
+          <button id="btn-empty-network" class="tool-action-button" type="button"><span>＋</span> Red vacía</button>
+          <button id="btn-random-network" class="tool-action-button" type="button"><span>✦</span> Red aleatoria</button>
+          <button id="btn-undo" class="tool-action-button" type="button"><span>↶</span> Deshacer</button>
+          <button id="btn-redo" class="tool-action-button" type="button"><span>↷</span> Rehacer</button>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2">
           <button id="btn-import" class="tool-action-button" type="button"><span>↥</span> Importar</button>
           <button id="btn-export-network" class="tool-action-button" type="button"><span>↧</span> Exportar red</button>
           <button id="btn-export-result" class="tool-action-button" type="button"><span>▣</span> Exportar AEM</button>
+          <button id="btn-export-report" class="tool-action-button" type="button"><span>▤</span> Reporte</button>
           <button id="btn-reset-view" class="tool-action-button" type="button"><span>↺</span> Restablecer</button>
         </div>
         <input id="graph-file-input" type="file" accept="application/json,.json" hidden>
@@ -73,7 +81,7 @@
         </select>
       </div>
 
-      <button id="btn-solve" class="w-full py-3 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-sm rounded-xl shadow-lg transition transform active:scale-95 flex justify-center items-center space-x-2">
+      <button id="btn-solve" class="solve-button w-full py-3 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-sm rounded-xl shadow-lg transition transform active:scale-95 flex justify-center items-center space-x-2">
         <span>⚡</span> <span>Resolver AEM</span>
       </button>
     </aside>
