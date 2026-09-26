@@ -586,6 +586,14 @@ class GraphManager {
      * @returns {void}
      */
     resetVisualStyles() {
+        this.nodes.update(this.nodes.get().map(node => ({
+            id: node.id,
+            color: {
+                background: '#38bdf8',
+                border: '#0284c7',
+                highlight: { background: '#f59e0b', border: '#d97706' }
+            }
+        })));
         this.edges.update(this.edges.get().map(edge => ({
             id: edge.id,
             color: { color: '#64748b', highlight: '#f59e0b' },
@@ -623,6 +631,34 @@ class GraphManager {
         });
 
         this.edges.update(updatedEdges);
+    }
+
+    /**
+     * Resalta el resultado de Dijkstra sin reutilizar los estilos del AEM.
+     * @param {{selectedPathEdges: Object[], settledNodes: Array<string|number>, relaxedEdges: Object[]}} result Resultado visual de Dijkstra.
+     * @returns {void}
+     */
+    highlightDijkstra(result) {
+        const pathIds = new Set(result.selectedPathEdges.map(edge => edge.id));
+        const relaxedIds = new Set(result.relaxedEdges.map(edge => edge.id));
+        const settledIds = new Set(result.settledNodes);
+
+        this.nodes.update(this.nodes.get().map(node => ({
+            id: node.id,
+            color: settledIds.has(node.id)
+                ? { background: '#f59e0b', border: '#d97706', highlight: { background: '#fbbf24', border: '#f59e0b' } }
+                : { background: '#38bdf8', border: '#0284c7', highlight: { background: '#f59e0b', border: '#d97706' } }
+        })));
+        this.edges.update(this.edges.get().map(edge => ({
+            id: edge.id,
+            color: pathIds.has(edge.id)
+                ? { color: '#f59e0b', highlight: '#fbbf24' }
+                : relaxedIds.has(edge.id)
+                    ? { color: '#38bdf8', highlight: '#7dd3fc' }
+                    : { color: '#334155', opacity: 0.3 },
+            width: pathIds.has(edge.id) ? 5 : relaxedIds.has(edge.id) ? 3 : 1,
+            dashes: false
+        })));
     }
 
     /**

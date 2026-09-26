@@ -26,8 +26,8 @@
       </div>
     </div>
     <nav class="flex space-x-2 bg-slate-900 p-1 rounded-xl border border-slate-700">
-      <button class="px-4 py-1.5 text-xs font-semibold rounded-lg bg-emerald-500 text-slate-900 shadow">Taller 1: AEM</button>
-      <button class="px-4 py-1.5 text-xs font-semibold rounded-lg text-slate-500 cursor-not-allowed" disabled>Taller 2: Ruta Más Corta 🔒</button>
+      <button id="btn-algorithm-mst" class="px-4 py-1.5 text-xs font-semibold rounded-lg bg-emerald-500 text-slate-900 shadow">Taller 1: AEM</button>
+      <button id="btn-algorithm-dijkstra" class="px-4 py-1.5 text-xs font-semibold rounded-lg text-slate-500">Taller 2: Dijkstra</button>
       <button class="px-4 py-1.5 text-xs font-semibold rounded-lg text-slate-500 cursor-not-allowed" disabled>Taller 3: Flujo Máximo 🔒</button>
     </nav>
   </header>
@@ -60,7 +60,7 @@
         <div class="grid grid-cols-2 gap-2">
           <button id="btn-import" class="tool-action-button" type="button"><span>↥</span> Importar</button>
           <button id="btn-export-network" class="tool-action-button" type="button"><span>↧</span> Exportar red</button>
-          <button id="btn-export-result" class="tool-action-button" type="button"><span>▣</span> Exportar AEM</button>
+          <button id="btn-export-result" class="tool-action-button" type="button"><span>▣</span> <span id="export-result-label">Exportar AEM</span></button>
           <button id="btn-export-report" class="tool-action-button" type="button"><span>▤</span> Reporte</button>
           <button id="btn-reset-view" class="tool-action-button" type="button"><span>↺</span> Restablecer</button>
         </div>
@@ -79,6 +79,14 @@
           <option value="red2">Red 2 (Ejemplo Clase)</option>
           <option value="red3">Red 3 (15 Nodos)</option>
         </select>
+
+        <div id="dijkstra-controls" class="dijkstra-controls">
+          <label class="og-form-label" for="dijkstra-mode">Modo de Dijkstra</label>
+          <select id="dijkstra-mode" class="w-full bg-slate-900 border border-slate-700 text-slate-300 text-xs rounded-lg p-2.5">
+            <option value="target">Origen a destino</option>
+            <option value="all">Origen a todos</option>
+          </select>
+        </div>
       </div>
 
       <button id="btn-solve" class="solve-button w-full py-3 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-sm rounded-xl shadow-lg transition transform active:scale-95 flex justify-center items-center space-x-2">
@@ -93,9 +101,9 @@
       </div>
       <div id="canvas-container" class="w-full flex-1"></div>
       <div class="graph-legend" aria-label="Leyenda del grafo">
-        <span><i class="legend-line legend-line-mst"></i>AEM</span>
-        <span><i class="legend-line legend-line-tie"></i>Empate</span>
-        <span><i class="legend-line legend-line-other"></i>Sin seleccionar</span>
+        <span id="legend-primary"><i class="legend-line legend-line-mst"></i>AEM</span>
+        <span id="legend-secondary"><i class="legend-line legend-line-tie"></i>Empate</span>
+        <span id="legend-other"><i class="legend-line legend-line-other"></i>Sin seleccionar</span>
       </div>
 
       <footer class="app-footer bg-slate-800 border-t border-slate-700 px-6 py-3">
@@ -110,7 +118,7 @@
             <span id="node-count" class="footer-metric-value text-sky-400">0</span>
           </div>
           <div class="footer-metric">
-            <span class="footer-metric-label">Peso total AEM</span>
+            <span id="total-weight-label" class="footer-metric-label">Peso total AEM</span>
             <span id="total-weight" class="footer-metric-value text-emerald-400">—</span>
           </div>
           <div class="footer-metric">
@@ -141,6 +149,7 @@
   </div>
 
   <script src="js/mst-algorithm.js"></script>
+  <script src="js/dijkstra-algorithm.js"></script>
   <script src="js/graph-manager.js"></script>
   <script src="js/main.js"></script>
 </body>
