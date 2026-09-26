@@ -4,6 +4,8 @@
 
 `main.js` es el controlador principal de OptiGraph Studio. Se ejecuta cuando el DOM esta listo y conecta la interfaz HTML con `GraphManager`, `MSTSolver` y SweetAlert2.
 
+Tambien coordina el Taller 2: Dijkstra, incluyendo la seleccion del algoritmo, los modos origen-destino/origen-a-todos, la tabla de distancias y la restauracion de resultados importados.
+
 No implementa la matematica de Prim ni dibuja directamente el canvas. Coordina los servicios que viven en los otros modulos.
 
 ## Estado de la aplicacion
@@ -98,6 +100,10 @@ El flujo de `btnSolve` es:
 8. Mostrar el modal de exito.
 
 Si DFS determina que la red no es conexa, se actualiza el estado visual y se muestra el modal de error.
+
+## Resolucion Dijkstra
+
+Cuando el algoritmo activo es Dijkstra, `btnSolve` solicita origen y, en modo origen-destino, destino. Instancia `DijkstraSolver`, pinta la ruta minima mediante `highlightDijkstra()` y renderiza una tabla de nodos procesados, distancias y relajaciones. Cada distancia se presenta como `[Distancia, Predecesor]` para coincidir con el formato academico de los talleres.
 
 ## `restoreSolutionView(result)`
 

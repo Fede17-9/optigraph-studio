@@ -191,6 +191,8 @@
 
 .legend-line-mst { border-color: #10b981; }
 .legend-line-tie { border-color: #38bdf8; border-top-style: dashed; }
+.legend-line-dijkstra { border-color: #f59e0b; }
+.legend-line-relaxed { border-color: #38bdf8; }
 .legend-line-other { border-color: #64748b; border-top-width: 2px; }
 
 .metric-value {
@@ -359,4 +361,12 @@
   margin: 0 0 0.35rem;
   padding: 0.65rem 0.8rem;
   border-radius: 0.75rem;
+}
+
+.dijkstra-controls {
+  display: none;
+}
+
+.dijkstra-active .dijkstra-controls {
+  display: block;
 }

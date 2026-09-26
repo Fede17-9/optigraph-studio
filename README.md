@@ -113,16 +113,29 @@ GraphManager  MSTSolver
 | `js/main.js` | Controlador de UI, modales, persistencia y flujo de resolución. |
 | `js/graph-manager.js` | Administración del grafo Vis.js y operaciones de edición. |
 | `js/mst-algorithm.js` | Conexidad, Prim, empates y tabla de iteraciones. |
+| `js/dijkstra-algorithm.js` | Dijkstra, distancias, relajaciones y reconstruccion de rutas. |
 | `README.md` | Guía general del proyecto. |
 | `docs/README-index.md` | Documentación detallada de `index.html`. |
 | `docs/README-styles.md` | Documentación detallada de `css/styles.css`. |
 | `docs/README-main.md` | Documentación detallada de `js/main.js`. |
 | `docs/README-graph-manager.md` | Documentación detallada de `js/graph-manager.js`. |
 | `docs/README-mst-algorithm.md` | Documentación detallada de `js/mst-algorithm.js`. |
+| `docs/README-dijkstra-algorithm.md` | Documentación detallada de `js/dijkstra-algorithm.js`. |
 
 ## Taller 1: Árbol de Expansión Mínima
 
 El AEM es un subconjunto de aristas que conecta todos los nodos de una red conexa con el menor costo total posible y sin formar ciclos.
+
+## Taller 2: Dijkstra
+
+Dijkstra calcula distancias mínimas desde un nodo de origen en la misma red no dirigida y ponderada del proyecto.
+
+Tiene dos modos:
+
+- **Origen a destino:** muestra la ruta mínima y su distancia.
+- **Origen a todos:** muestra la tabla de distancias hacia todos los nodos.
+
+La visualización activa reemplaza la anterior. La ruta mínima se muestra en naranja, los nodos procesados en amarillo y las aristas relajadas en azul.
 
 ### Flujo del algoritmo
 

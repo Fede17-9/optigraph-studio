@@ -44,6 +44,8 @@ El elemento `#tools-panel` contiene:
 - `#btn-reset-view`: elimina el resaltado visual del AEM.
 - `#select-demo`: carga los presets Red 1, Red 2 o Red 3.
 - `#btn-solve`: inicia la resolucion de Prim.
+- `#btn-algorithm-mst` y `#btn-algorithm-dijkstra`: cambian el algoritmo activo.
+- `#dijkstra-controls`: selecciona el modo origen-destino u origen-a-todos.
 
 El input `#graph-file-input` permanece oculto y es activado por el boton Importar.
 

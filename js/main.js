@@ -16,6 +16,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const graphManager = new GraphManager("canvas-container");
     let lastSolveResult = null;
     let lastStartNode = null;
+    let activeAlgorithm = 'mst';
 
     // Enlazar las métricas reactivas de GraphManager con la barra inferior.
     const nodeCountEl = document.getElementById("node-count");
@@ -44,6 +45,27 @@ document.addEventListener("DOMContentLoaded", () => {
     const tieCountEl = document.getElementById("tie-count");
     const toolsPanel = document.getElementById("tools-panel");
     const procedurePanel = document.getElementById("procedure-panel");
+    const dijkstraModeEl = document.getElementById("dijkstra-mode");
+    const btnAlgorithmMst = document.getElementById("btn-algorithm-mst");
+    const btnAlgorithmDijkstra = document.getElementById("btn-algorithm-dijkstra");
+    const procedureSubtitle = document.querySelector('#procedure-panel p');
+    const totalWeightLabel = document.getElementById('total-weight-label');
+    const legendPrimary = document.getElementById('legend-primary');
+    const legendSecondary = document.getElementById('legend-secondary');
+    const legendOther = document.getElementById('legend-other');
+    const exportResultLabel = document.getElementById('export-result-label');
+
+    const updateAlgorithmUi = () => {
+        const isDijkstra = activeAlgorithm === 'dijkstra';
+        document.body.classList.toggle('dijkstra-active', isDijkstra);
+        btnSolve.innerHTML = isDijkstra ? '<span>⚡</span> <span>Resolver Dijkstra</span>' : '<span>⚡</span> <span>Resolver AEM</span>';
+        if (procedureSubtitle) procedureSubtitle.innerHTML = isDijkstra ? 'Evolución de distancias y relajaciones' : 'Evolución de los conjuntos k, C<sub>k</sub> y C̄<sub>k</sub>';
+        if (totalWeightLabel) totalWeightLabel.innerText = isDijkstra ? 'Distancia' : 'Peso total AEM';
+        if (legendPrimary) legendPrimary.innerHTML = isDijkstra ? '<i class="legend-line legend-line-dijkstra"></i>Ruta mínima' : '<i class="legend-line legend-line-mst"></i>AEM';
+        if (legendSecondary) legendSecondary.innerHTML = isDijkstra ? '<i class="legend-line legend-line-relaxed"></i>Relajada' : '<i class="legend-line legend-line-tie"></i>Empate';
+        if (legendOther) legendOther.innerHTML = '<i class="legend-line legend-line-other"></i>Sin seleccionar';
+        if (exportResultLabel) exportResultLabel.innerText = isDijkstra ? 'Exportar Dijkstra' : 'Exportar AEM';
+    };
 
     const modalClasses = graphManager.getModalClasses();
 
@@ -54,6 +76,26 @@ document.addEventListener("DOMContentLoaded", () => {
 
     graphManager.onGraphChange = updateHistoryButtons;
     updateHistoryButtons();
+
+    btnAlgorithmMst.addEventListener("click", () => {
+        activeAlgorithm = 'mst';
+        btnAlgorithmMst.className = 'px-4 py-1.5 text-xs font-semibold rounded-lg bg-emerald-500 text-slate-900 shadow';
+        btnAlgorithmDijkstra.className = 'px-4 py-1.5 text-xs font-semibold rounded-lg text-slate-500';
+        graphManager.resetVisualStyles();
+        updateAlgorithmUi();
+        resetUI();
+    });
+
+    btnAlgorithmDijkstra.addEventListener("click", () => {
+        activeAlgorithm = 'dijkstra';
+        btnAlgorithmDijkstra.className = 'px-4 py-1.5 text-xs font-semibold rounded-lg bg-emerald-500 text-slate-900 shadow';
+        btnAlgorithmMst.className = 'px-4 py-1.5 text-xs font-semibold rounded-lg text-slate-500';
+        graphManager.resetVisualStyles();
+        updateAlgorithmUi();
+        resetUI();
+    });
+
+    updateAlgorithmUi();
 
     btnAddNode.addEventListener("click", () => {
         graphManager.mode = 'add-node';
@@ -177,7 +219,13 @@ document.addEventListener("DOMContentLoaded", () => {
             if (importedSolution?.result) {
                 lastSolveResult = importedSolution.result;
                 lastStartNode = importedSolution.startNode;
-                restoreSolutionView(importedSolution.result);
+                activeAlgorithm = importedSolution.result.algorithm || graphData.algorithm || 'mst';
+                updateAlgorithmUi();
+                if (activeAlgorithm === 'dijkstra') {
+                    restoreDijkstraView(importedSolution.result);
+                } else {
+                    restoreSolutionView(importedSolution.result);
+                }
             }
             updateHistoryButtons();
             Swal.fire({
@@ -214,7 +262,7 @@ document.addEventListener("DOMContentLoaded", () => {
         if (!lastSolveResult) {
             Swal.fire({
                 icon: 'info',
-                title: 'Aún no hay un AEM calculado',
+                title: 'Aún no hay un resultado calculado',
                 text: 'Resuelva la red antes de exportar su resultado.',
                 confirmButtonColor: '#10b981',
                 customClass: graphManager.getModalClasses()
@@ -222,11 +270,13 @@ document.addEventListener("DOMContentLoaded", () => {
             return;
         }
 
-        downloadJson('optigraph-aem.json', {
-            version: 1,
+        const isDijkstra = activeAlgorithm === 'dijkstra';
+        downloadJson(isDijkstra ? 'optigraph-dijkstra.json' : 'optigraph-aem.json', {
+            version: 2,
+            algorithm: isDijkstra ? 'dijkstra' : 'mst',
             exportedAt: new Date().toISOString(),
             graph: graphManager.getGraphData(),
-            result: {
+            result: isDijkstra ? lastSolveResult : {
                 startNode: lastStartNode,
                 selectedEdges: lastSolveResult.selectedEdges,
                 tiedEdges: lastSolveResult.tiedEdges,
@@ -241,7 +291,11 @@ document.addEventListener("DOMContentLoaded", () => {
             Swal.fire({ icon: 'info', title: 'Aún no hay un AEM calculado', text: 'Resuelva la red antes de exportar el reporte.', confirmButtonColor: '#10b981', customClass: modalClasses });
             return;
         }
-        downloadReport('optigraph-reporte-aem.html', graphManager.getGraphData(), lastStartNode, lastSolveResult);
+        if (activeAlgorithm === 'dijkstra') {
+            downloadDijkstraReport('optigraph-reporte-dijkstra.html', graphManager.getGraphData(), lastSolveResult);
+        } else {
+            downloadReport('optigraph-reporte-aem.html', graphManager.getGraphData(), lastStartNode, lastSolveResult);
+        }
     });
 
     btnResetView.addEventListener("click", () => {
@@ -275,6 +329,11 @@ document.addEventListener("DOMContentLoaded", () => {
                     confirmButton: 'og-modal-confirm'
                 }
             });
+            return;
+        }
+
+        if (activeAlgorithm === 'dijkstra') {
+            await solveDijkstra(nodes, edges);
             return;
         }
 
@@ -375,7 +434,7 @@ document.addEventListener("DOMContentLoaded", () => {
         lastStartNode = null;
         document.getElementById("steps-container").innerHTML = `
             <div class="text-center py-12 text-slate-500 text-xs">
-                Haga clic en "Resolver AEM" para generar la secuencia de iteraciones.
+                Haga clic en "Resolver ${activeAlgorithm === 'dijkstra' ? 'Dijkstra' : 'AEM'}" para generar la secuencia de iteraciones.
             </div>`;
         const statusEl = document.getElementById("status-indicator");
         statusEl.className = "inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-slate-700 text-slate-300";
@@ -397,6 +456,72 @@ document.addEventListener("DOMContentLoaded", () => {
         if (totalWeightEl) totalWeightEl.innerText = `${result.totalWeight} u`;
         if (iterationCountEl) iterationCountEl.innerText = result.stepTable.length;
         if (tieCountEl) tieCountEl.innerText = result.tiedEdges.length;
+    }
+
+    /**
+     * Restaura una solucion Dijkstra importada en el canvas y el panel.
+     * @param {Object} result Resultado serializado de Dijkstra.
+     * @returns {void}
+     */
+    function restoreDijkstraView(result) {
+        graphManager.highlightDijkstra(result);
+        renderDijkstraSteps(result.stepTable);
+        document.getElementById('status-indicator').className = 'inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-emerald-900/60 text-emerald-300 border border-emerald-600 shadow-sm';
+        document.getElementById('status-indicator').innerText = '🟢 DIJKSTRA CALCULADO';
+        if (totalWeightEl) totalWeightEl.innerText = result.targetNode === null ? '—' : `${result.distances[result.targetNode]} u`;
+        if (iterationCountEl) iterationCountEl.innerText = result.stepTable.length;
+        if (tieCountEl) tieCountEl.innerText = result.stepTable.filter(step => step.tieDescription).length;
+    }
+
+    /**
+     * Solicita origen y destino/modo y ejecuta Dijkstra sobre la red actual.
+     * @param {Object[]} nodes Nodos actuales.
+     * @param {Object[]} edges Aristas actuales.
+     * @returns {Promise<void>} Promesa de la resolucion y presentacion.
+     */
+    async function solveDijkstra(nodes, edges) {
+        const optionsHtml = nodes.map(node => `<option value="${node.id}">Nodo ${node.label}</option>`).join('');
+        const { value: config } = await Swal.fire({
+            title: 'Configurar Dijkstra',
+            html: `
+                <label class="og-form-label" for="dijkstra-start">Nodo de origen</label>
+                <select id="dijkstra-start" class="og-modal-input">${optionsHtml}</select>
+                <div id="dijkstra-target-wrapper">
+                    <label class="og-form-label" for="dijkstra-target">Nodo de destino</label>
+                    <select id="dijkstra-target" class="og-modal-input">${optionsHtml}</select>
+                </div>
+            `,
+            showCancelButton: true,
+            confirmButtonText: 'Resolver Dijkstra',
+            cancelButtonText: 'Cancelar',
+            confirmButtonColor: '#10b981',
+            customClass: modalClasses,
+            didOpen: () => {
+                const mode = dijkstraModeEl.value;
+                document.getElementById('dijkstra-target-wrapper').style.display = mode === 'target' ? 'block' : 'none';
+            },
+            preConfirm: () => ({
+                startNode: document.getElementById('dijkstra-start').value,
+                targetNode: dijkstraModeEl.value === 'target' ? document.getElementById('dijkstra-target').value : null
+            })
+        });
+        if (!config) return;
+
+        try {
+            const result = new DijkstraSolver(nodes, edges).solve(config.startNode, config.targetNode);
+            lastSolveResult = result;
+            lastStartNode = config.startNode;
+            graphManager.highlightDijkstra(result);
+            renderDijkstraSteps(result.stepTable);
+            document.getElementById('status-indicator').className = 'inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-emerald-900/60 text-emerald-300 border border-emerald-600 shadow-sm';
+            document.getElementById('status-indicator').innerText = '🟢 DIJKSTRA CALCULADO';
+            if (totalWeightEl) totalWeightEl.innerText = config.targetNode === null ? '—' : `${result.distances[config.targetNode]} u`;
+            if (iterationCountEl) iterationCountEl.innerText = result.stepTable.length;
+            if (tieCountEl) tieCountEl.innerText = result.stepTable.filter(step => step.tieDescription).length;
+            Swal.fire({ icon: 'success', title: '¡Dijkstra calculado!', text: config.targetNode === null ? 'Se calcularon las distancias desde el nodo de origen.' : `Distancia mínima: ${result.distances[config.targetNode]} unidades.`, confirmButtonColor: '#10b981', customClass: { ...modalClasses, confirmButton: 'og-modal-confirm' } });
+        } catch (error) {
+            Swal.fire({ icon: 'error', title: 'No se pudo ejecutar Dijkstra', text: error.message, confirmButtonColor: '#f43f5e', customClass: { ...modalClasses, confirmButton: 'og-modal-deny' } });
+        }
     }
 });
 
@@ -470,6 +595,68 @@ function downloadReport(filename, graphData, startNode, result) {
         <tr><td>${step.iteration}</td><td>{ ${step.Ck} }</td><td>{ ${step.Cbar} }</td><td>${step.selectedEdge}</td><td>${step.weight}</td><td>${step.tieDescription || '—'}</td></tr>
     `).join('');
     const report = `<!doctype html><html lang="es"><head><meta charset="UTF-8"><title>Reporte AEM</title><style>body{font-family:Arial,sans-serif;color:#0f172a;max-width:1100px;margin:2rem auto;padding:0 1rem}h1{color:#047857}table{border-collapse:collapse;width:100%;font-size:12px}th,td{border:1px solid #cbd5e1;padding:8px;text-align:left}th{background:#d1fae5}.summary{display:flex;gap:2rem;margin:1rem 0;font-weight:bold}</style></head><body><h1>OptiGraph Studio — Reporte AEM</h1><div class="summary"><span>Nodo inicial: ${startNode}</span><span>Peso total: ${result.totalWeight}</span><span>Iteraciones: ${result.stepTable.length}</span><span>Empates: ${result.tiedEdges.length}</span></div><p>Nodos: ${graphData.nodes.length} · Aristas: ${graphData.edges.length}</p><table><thead><tr><th>Paso</th><th>C_k</th><th>C̄_k</th><th>Arista elegida</th><th>Peso</th><th>Empate</th></tr></thead><tbody>${steps}</tbody></table></body></html>`;
+    const blob = new Blob([report], { type: 'text/html;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    setTimeout(() => { URL.revokeObjectURL(url); link.remove(); }, 100);
+}
+
+/**
+ * Renderiza la tabla de distancias y relajaciones de Dijkstra.
+ * @param {Object[]} stepTable Pasos producidos por DijkstraSolver.
+ * @returns {void}
+ */
+function renderDijkstraSteps(stepTable) {
+    const container = document.getElementById('steps-container');
+    container.innerHTML = '';
+    stepTable.forEach(step => {
+        const card = document.createElement('div');
+        card.className = 'step-card bg-slate-900 border border-slate-700 rounded-xl p-3 space-y-1.5 shadow';
+        const distances = formatDijkstraDistanceTable(step.distances, step.predecessors);
+        const relaxations = step.relaxedEdges.length > 0 ? step.relaxedEdges.map(item => `${item.nodeId} (${item.distance})`).join(', ') : 'Ninguna';
+        card.innerHTML = `<div class="flex justify-between items-center border-b border-slate-800 pb-1"><span class="text-xs font-bold text-emerald-400">Paso k = ${step.iteration}</span><span class="text-xs font-mono bg-slate-800 text-slate-300 px-2 py-0.5 rounded border border-slate-700">Procesado: ${step.currentNode}</span></div><div class="text-[11px] font-mono text-slate-300 space-y-0.5"><p><span class="text-slate-500">Distancias:</span> { ${distances} }</p><p><span class="text-slate-500">Relajaciones:</span> ${relaxations}</p>${step.tieDescription ? `<p class="text-sky-300">${step.tieDescription}</p>` : ''}</div>`;
+        container.appendChild(card);
+    });
+}
+
+/**
+ * Formatea la tabla academica de Dijkstra con distancia y predecesor.
+ * El nodo origen o un nodo aun no alcanzable usa `-` como predecesor.
+ *
+ * @param {Object.<string, number>} distances Distancias conocidas por nodo.
+ * @param {Object.<string, (string|number|null)>} predecessors Predecesores actuales.
+ * @returns {string} Texto con el formato `Nodo: [Dist, Previo]`.
+ */
+function formatDijkstraDistanceTable(distances, predecessors) {
+    return Object.entries(distances).map(([node, distance]) => {
+        const formattedDistance = distance === Infinity ? '∞' : distance;
+        const predecessor = predecessors[node] === null || predecessors[node] === undefined
+            ? '-'
+            : predecessors[node];
+        return `${node}: [${formattedDistance}, ${predecessor}]`;
+    }).join(', ');
+}
+
+/**
+ * Genera un reporte HTML para un resultado de Dijkstra.
+ * @param {string} filename Nombre del archivo.
+ * @param {Object} graphData Red utilizada.
+ * @param {Object} result Resultado de Dijkstra.
+ * @returns {void}
+ */
+function downloadDijkstraReport(filename, graphData, result) {
+    const steps = result.stepTable.map(step => {
+        const distances = formatDijkstraDistanceTable(step.distances, step.predecessors);
+        const relaxed = step.relaxedEdges.map(item => `${item.nodeId} (${item.distance})`).join(', ') || 'Ninguna';
+        return `<tr><td>${step.iteration}</td><td>${step.currentNode}</td><td>${distances}</td><td>${relaxed}</td><td>${step.tieDescription || '—'}</td></tr>`;
+    }).join('');
+    const destination = result.targetNode === null ? 'Todos los nodos' : result.targetNode;
+    const distance = result.targetNode === null ? '—' : result.distances[result.targetNode];
+    const report = `<!doctype html><html lang="es"><head><meta charset="UTF-8"><title>Reporte Dijkstra</title><style>body{font-family:Arial,sans-serif;color:#0f172a;max-width:1100px;margin:2rem auto;padding:0 1rem}h1{color:#047857}table{border-collapse:collapse;width:100%;font-size:12px}th,td{border:1px solid #cbd5e1;padding:8px;text-align:left;vertical-align:top}th{background:#d1fae5}.summary{display:flex;gap:2rem;margin:1rem 0;font-weight:bold;flex-wrap:wrap}</style></head><body><h1>OptiGraph Studio — Reporte Dijkstra</h1><div class="summary"><span>Origen: ${result.startNode}</span><span>Destino: ${destination}</span><span>Distancia: ${distance}</span><span>Pasos: ${result.stepTable.length}</span></div><p>Nodos: ${graphData.nodes.length} · Aristas: ${graphData.edges.length}</p><table><thead><tr><th>Paso</th><th>Nodo procesado</th><th>Distancias [Dist, Previo]</th><th>Relajaciones</th><th>Empate</th></tr></thead><tbody>${steps}</tbody></table></body></html>`;
     const blob = new Blob([report], { type: 'text/html;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');

@@ -15,6 +15,7 @@ La clase controla:
 - Historial de deshacer y rehacer.
 - Creacion de redes vacias y aleatorias.
 - Estilos del AEM y empates.
+- Estilos de la ruta Dijkstra, nodos procesados y aristas relajadas.
 
 ## Estado principal
 
@@ -101,6 +102,15 @@ Si una arista aparece como seleccionada y empatada, el estilo verde del AEM tien
 ### `resetVisualStyles()`
 
 Devuelve todas las aristas al estilo base sin modificar nodos, conexiones ni pesos.
+
+### `highlightDijkstra(result)`
+
+Pinta el resultado de Dijkstra sin reutilizar la paleta de Prim:
+
+- Naranja: ruta mínima final.
+- Amarillo: nodos procesados.
+- Azul: aristas relajadas.
+- Gris: elementos restantes.
 
 ## Presets
 
