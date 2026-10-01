@@ -563,7 +563,7 @@ function renderProcedureSteps(stepTable) {
     stepTable.forEach(step => {
         const stepCard = document.createElement("div");
         stepCard.className = "step-card bg-slate-900 border border-slate-700 rounded-xl p-3 space-y-1.5 shadow";
-        
+
         stepCard.innerHTML = `
             <div class="flex justify-between items-center border-b border-slate-800 pb-1">
                 <span class="text-xs font-bold text-emerald-400">Paso k = ${step.iteration}</span>
@@ -612,13 +612,17 @@ function downloadReport(filename, graphData, startNode, result) {
  */
 function renderDijkstraSteps(stepTable) {
     const container = document.getElementById('steps-container');
+    if (!container) return;
     container.innerHTML = '';
     stepTable.forEach(step => {
         const card = document.createElement('div');
-        card.className = 'step-card bg-slate-900 border border-slate-700 rounded-xl p-3 space-y-1.5 shadow';
-        const distances = formatDijkstraDistanceTable(step.distances, step.predecessors);
+        card.className = 'step-card bg-slate-900 border border-slate-700 rounded-xl p-3 space-y-1.5 shadow mb-2';
+
+        // AQUÍ: Le pasamos el mapa de iteraciones guardado en la iteración
+        const distances = formatDijkstraDistanceTable(step.distances, step.predecessors, step.permanentIterations || {});
+
         const relaxations = step.relaxedEdges.length > 0 ? step.relaxedEdges.map(item => `${item.nodeId} (${item.distance})`).join(', ') : 'Ninguna';
-        card.innerHTML = `<div class="flex justify-between items-center border-b border-slate-800 pb-1"><span class="text-xs font-bold text-emerald-400">Paso k = ${step.iteration}</span><span class="text-xs font-mono bg-slate-800 text-slate-300 px-2 py-0.5 rounded border border-slate-700">Procesado: ${step.currentNode}</span></div><div class="text-[11px] font-mono text-slate-300 space-y-0.5"><p><span class="text-slate-500">Distancias:</span> { ${distances} }</p><p><span class="text-slate-500">Relajaciones:</span> ${relaxations}</p>${step.tieDescription ? `<p class="text-sky-300">${step.tieDescription}</p>` : ''}</div>`;
+        card.innerHTML = `<div class="flex justify-between items-center border-b border-slate-800 pb-1"><span class="text-xs font-bold text-emerald-400">Paso k = ${step.iteration}</span><span class="text-xs font-mono bg-slate-800 text-slate-300 px-2 py-0.5 rounded border border-slate-700">Procesado: ${step.currentNode}</span></div><div class="text-[11px] font-mono text-slate-300 space-y-0.5 mt-1"><p><span class="text-slate-500">Distancias:</span> { ${distances} }</p><p><span class="text-slate-500">Relajaciones:</span> ${relaxations}</p>${step.tieDescription ? `<p class="text-sky-300">${step.tieDescription}</p>` : ''}</div>`;
         container.appendChild(card);
     });
 }
@@ -631,13 +635,17 @@ function renderDijkstraSteps(stepTable) {
  * @param {Object.<string, (string|number|null)>} predecessors Predecesores actuales.
  * @returns {string} Texto con el formato `Nodo: [Dist, Previo]`.
  */
-function formatDijkstraDistanceTable(distances, predecessors) {
+/**
+ * Formatea la tabla académica de Dijkstra con la notación formal [u_j, pred]_(k).
+ */
+function formatDijkstraDistanceTable(distances, predecessors, permanentIterations = {}) {
     return Object.entries(distances).map(([node, distance]) => {
         const formattedDistance = distance === Infinity ? '∞' : distance;
-        const predecessor = predecessors[node] === null || predecessors[node] === undefined
-            ? '-'
-            : predecessors[node];
-        return `${node}: [${formattedDistance}, ${predecessor}]`;
+        const predecessor = predecessors[node] === null || predecessors[node] === undefined ? '-' : predecessors[node];
+        const iter = (permanentIterations && permanentIterations[node] !== null && permanentIterations[node] !== undefined)
+            ? permanentIterations[node]
+            : '-';
+        return `${node}: [${formattedDistance}, ${predecessor}]_(${iter})`;
     }).join(', ');
 }
 
@@ -650,7 +658,7 @@ function formatDijkstraDistanceTable(distances, predecessors) {
  */
 function downloadDijkstraReport(filename, graphData, result) {
     const steps = result.stepTable.map(step => {
-        const distances = formatDijkstraDistanceTable(step.distances, step.predecessors);
+        const distances = formatDijkstraDistanceTable(step.distances, step.predecessors, step.permanentIterations);
         const relaxed = step.relaxedEdges.map(item => `${item.nodeId} (${item.distance})`).join(', ') || 'Ninguna';
         return `<tr><td>${step.iteration}</td><td>${step.currentNode}</td><td>${distances}</td><td>${relaxed}</td><td>${step.tieDescription || '—'}</td></tr>`;
     }).join('');

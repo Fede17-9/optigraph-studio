@@ -49,6 +49,7 @@ class DijkstraSolver {
         const adjacency = this.buildAdjacency();
         const distances = {};
         const predecessors = {};
+        const permanentIterations = {}; // Guardará k cuando el nodo se vuelve permanente
         const unsettled = new Set(nodeIds);
         const settledNodes = [];
         const stepTable = [];
@@ -60,6 +61,12 @@ class DijkstraSolver {
         });
         distances[startNodeId] = 0;
 
+        nodeIds.forEach(nodeId => {
+            permanentIterations[nodeId] = null;
+        });
+        distances[startNodeId] = 0;
+        permanentIterations[startNodeId] = 0;
+
         let iteration = 1;
         while (unsettled.size > 0) {
             const currentNode = this.getClosestNode(unsettled, distances);
@@ -67,6 +74,9 @@ class DijkstraSolver {
 
             unsettled.delete(currentNode);
             settledNodes.push(currentNode);
+            if (permanentIterations[currentNode] === null) {
+                permanentIterations[currentNode] = iteration - 1;
+            }
             const stepRelaxations = [];
             const tiedCandidates = [];
 
@@ -94,11 +104,13 @@ class DijkstraSolver {
                 currentNode,
                 distances: { ...distances },
                 predecessors: { ...predecessors },
+                permanentIterations: { ...permanentIterations },
                 relaxedEdges: stepRelaxations,
                 tieDescription: tiedCandidates.length > 0
-                    ? `Empate de distancia en ${tiedCandidates.map(edge => `(${edge.from} - ${edge.to})`).join(', ')} [Distancia: ${distances[tiedCandidates[0].to]}]`
+                    ? `Empate de distancia en ${tiedCandidates.map(edge => `(${edge.from} -${edge.to})`).join(', ')} [Distancia: ${distances[tiedCandidates[0].to]}]`
                     : null
             });
+
             iteration++;
 
             if (targetNodeId !== null && currentNode === targetNodeId) break;
@@ -114,6 +126,7 @@ class DijkstraSolver {
             targetNode: targetNodeId,
             distances,
             predecessors,
+            permanentIterations,
             selectedPathEdges,
             settledNodes,
             relaxedEdges,

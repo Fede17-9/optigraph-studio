@@ -49,6 +49,7 @@ class GraphManager {
         this._history = [];
         this._historyIndex = -1;
         this._historySuspended = false;
+        this.formalLabels = new Map();
 
         this._initNetwork();
         this._recordHistory();
@@ -88,15 +89,18 @@ class GraphManager {
             // La posición se controla manualmente para conservar los presets y evitar
             // que la física reposicione los nodos después de cada edición.
             physics: { enabled: false },
-            interaction: { 
-                hover: true, 
-                dragNodes: true, 
+            interaction: {
+                hover: true,
+                dragNodes: true,
                 zoomView: true,
                 dragView: true
             }
         };
 
         this.network = new vis.Network(this.container, data, options);
+        this.formalLabelLayer = document.createElement('div');
+        this.formalLabelLayer.className = 'dijkstra-label-layer';
+        this.container.appendChild(this.formalLabelLayer);
         this._bindEvents();
     }
 
@@ -148,6 +152,10 @@ class GraphManager {
                 this.promptManageEdge(edgeId);
             }
         });
+
+        // Reposicionar las etiquetas academicas cuando Vis.js redibuja, arrastra
+        // nodos o cambia la escala del lienzo.
+        this.network.on('afterDrawing', () => this.positionFormalLabels());
 
         // Notificar cambios reactivos de nodos y aristas a la capa de UI.
         this.nodes.on('*', () => {
@@ -376,7 +384,7 @@ class GraphManager {
 
         if (weight) {
             const edgeId = `${fromNode}-${toNode}`;
-            const exists = this.edges.get().some(e => 
+            const exists = this.edges.get().some(e =>
                 (e.from === fromNode && e.to === toNode) || (e.from === toNode && e.to === fromNode)
             );
 
@@ -420,7 +428,7 @@ class GraphManager {
             // Eliminar todas las aristas incidentes antes de retirar el nodo.
             const connectedEdges = this.edges.get().filter(e => e.from === nodeId || e.to === nodeId);
             connectedEdges.forEach(e => this.edges.remove(e.id));
-            
+
             // Eliminar el nodo del DataSet; el contador reacciona al evento de cambio.
             this.nodes.remove(nodeId);
             this._recordHistory();
@@ -586,8 +594,12 @@ class GraphManager {
      * @returns {void}
      */
     resetVisualStyles() {
+        this.formalLabels.clear();
+        if (this.formalLabelLayer) this.formalLabelLayer.innerHTML = '';
         this.nodes.update(this.nodes.get().map(node => ({
             id: node.id,
+            label: node.label,
+            title: '',
             color: {
                 background: '#38bdf8',
                 border: '#0284c7',
@@ -638,6 +650,87 @@ class GraphManager {
      * @param {{selectedPathEdges: Object[], settledNodes: Array<string|number>, relaxedEdges: Object[]}} result Resultado visual de Dijkstra.
      * @returns {void}
      */
+    /**
+ * Renderiza las etiquetas formales [u_j, pred]_(k) exigidas en la clase sobre cada nodo.
+ */
+    /**
+ * Renderiza las etiquetas formales [u_j, pred]_(k) sobre los nodos de Vis.js.
+ */
+    renderFormalLabels(dijkstraResult) {
+        if (!dijkstraResult) return;
+
+        const distances = dijkstraResult.distances || {};
+        const predecessors = dijkstraResult.predecessors || {};
+        const settledNodes = dijkstraResult.settledNodes || [];
+        const permanentIterations = dijkstraResult.permanentIterations || {};
+
+        const updatedNodes = this.nodes.get().map(node => {
+            const nodeIdRaw = node.id;
+            const nodeIdStr = String(nodeIdRaw);
+
+            // Busca la distancia aceptando la clave como viene o en formato string
+            const dist = distances[nodeIdRaw] !== undefined ? distances[nodeIdRaw] : distances[nodeIdStr];
+            const pred = predecessors[nodeIdRaw] !== undefined ? predecessors[nodeIdRaw] : predecessors[nodeIdStr];
+
+            if (dist === undefined) return node;
+
+            // Intenta obtener la iteracion k
+            let iter = permanentIterations[nodeIdRaw] !== undefined ? permanentIterations[nodeIdRaw] : permanentIterations[nodeIdStr];
+
+            // Si no se encuentra en el objeto, calcula k segun la posicion en settledNodes
+            if (iter === null || iter === undefined) {
+                const idxRaw = settledNodes.indexOf(nodeIdRaw);
+                const idxStr = settledNodes.indexOf(nodeIdStr);
+                const index = idxRaw !== -1 ? idxRaw : idxStr;
+                iter = index !== -1 ? index : '?';
+            }
+
+            const formattedDist = dist === Infinity ? '∞' : dist;
+            const formattedPred = (pred === null || pred === undefined) ? '-' : pred;
+            const formattedIter = (iter === '?' || iter === null || iter === undefined) ? '-' : iter;
+
+            // Mantener la bolita pequena y conservar la notacion academica en una
+            // etiqueta lateral persistente, independiente del tamano del nodo.
+            this.formalLabels.set(node.id, `[${formattedDist}, ${formattedPred}]_(${formattedIter})`);
+            return {
+                id: node.id,
+                label: node.label || node.id,
+                title: `${node.label || node.id}\n[${formattedDist}, ${formattedPred}]_(${formattedIter})`
+            };
+        });
+
+        this.nodes.update(updatedNodes);
+        this.positionFormalLabels();
+    }
+
+    /**
+     * Dibuja y posiciona las etiquetas laterales de Dijkstra sobre el canvas.
+     * @returns {void}
+     */
+    positionFormalLabels() {
+        if (!this.formalLabelLayer || !this.network) return;
+
+        this.formalLabels.forEach((text, nodeId) => {
+            let labelElement = this.formalLabelLayer.querySelector(`[data-node-id="${CSS.escape(String(nodeId))}"]`);
+            if (!labelElement) {
+                labelElement = document.createElement('span');
+                labelElement.className = 'dijkstra-side-label';
+                labelElement.dataset.nodeId = String(nodeId);
+                this.formalLabelLayer.appendChild(labelElement);
+            }
+            labelElement.textContent = text;
+            const position = this.network.getPositions([nodeId])[nodeId];
+            if (!position) return;
+            const domPosition = this.network.canvasToDOM(position);
+            labelElement.style.left = `${domPosition.x}px`;
+            labelElement.style.top = `${domPosition.y}px`;
+        });
+
+        Array.from(this.formalLabelLayer.children).forEach(element => {
+            if (!this.formalLabels.has(element.dataset.nodeId)) element.remove();
+        });
+    }
+
     highlightDijkstra(result) {
         const pathIds = new Set(result.selectedPathEdges.map(edge => edge.id));
         const relaxedIds = new Set(result.relaxedEdges.map(edge => edge.id));
@@ -649,6 +742,7 @@ class GraphManager {
                 ? { background: '#f59e0b', border: '#d97706', highlight: { background: '#fbbf24', border: '#f59e0b' } }
                 : { background: '#38bdf8', border: '#0284c7', highlight: { background: '#f59e0b', border: '#d97706' } }
         })));
+
         this.edges.update(this.edges.get().map(edge => ({
             id: edge.id,
             color: pathIds.has(edge.id)
@@ -659,6 +753,9 @@ class GraphManager {
             width: pathIds.has(edge.id) ? 5 : relaxedIds.has(edge.id) ? 3 : 1,
             dashes: false
         })));
+
+        // ESTA LÍNEA ES LA QUE DIBUJA EL [u_j, pred]_(k) EN EL CANVAS:
+        this.renderFormalLabels(result);
     }
 
     /**
@@ -799,6 +896,8 @@ class GraphManager {
      */
     clear(recordHistory = true) {
         if (recordHistory) this._recordHistory();
+        this.formalLabels.clear();
+        if (this.formalLabelLayer) this.formalLabelLayer.innerHTML = '';
         this.nodes.clear();
         this.edges.clear();
         this.selectedSourceNode = null;

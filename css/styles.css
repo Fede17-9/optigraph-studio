@@ -20,6 +20,7 @@
 
 /* Efecto de cuadrícula en el canvas */
 #canvas-container {
+  position: relative;
   width: 100%;
   height: auto;
   min-height: 0;
@@ -369,4 +370,27 @@
 
 .dijkstra-active .dijkstra-controls {
   display: block;
+}
+
+.dijkstra-label-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.dijkstra-side-label {
+  position: absolute;
+  display: inline-block;
+  padding: 0.18rem 0.35rem;
+  border: 1px solid rgb(245 158 11 / 55%);
+  border-radius: 0.35rem;
+  background: rgb(15 23 42 / 92%);
+  color: #f8fafc;
+  font-family: monospace;
+  font-size: 0.68rem;
+  line-height: 1.1;
+  white-space: nowrap;
+  transform: translate(1.15rem, -50%);
 }

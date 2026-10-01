@@ -112,6 +112,11 @@ Pinta el resultado de Dijkstra sin reutilizar la paleta de Prim:
 - Azul: aristas relajadas.
 - Gris: elementos restantes.
 
+La notacion academica `[Dist, Previo]_(k)` no se inserta dentro de la etiqueta visible
+del nodo, porque eso haria que Vis.js agrandara la bolita para contener varias lineas.
+El nodo conserva su tamano y etiqueta original; la notacion completa queda disponible
+como informacion contextual al pasar el cursor sobre el nodo.
+
 ## Presets
 
 ### `loadPresetNetwork(presetKey)`
