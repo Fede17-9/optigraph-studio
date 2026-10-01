@@ -644,7 +644,7 @@ function formatDijkstraDistanceTable(distances, predecessors, permanentIteration
         const predecessor = predecessors[node] === null || predecessors[node] === undefined ? '-' : predecessors[node];
         const iter = (permanentIterations && permanentIterations[node] !== null && permanentIterations[node] !== undefined)
             ? permanentIterations[node]
-            : '?';
+            : '-';
         return `${node}: [${formattedDistance}, ${predecessor}]_(${iter})`;
     }).join(', ');
 }

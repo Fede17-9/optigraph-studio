@@ -105,6 +105,8 @@ Si DFS determina que la red no es conexa, se actualiza el estado visual y se mue
 
 Cuando el algoritmo activo es Dijkstra, `btnSolve` solicita origen y, en modo origen-destino, destino. Instancia `DijkstraSolver`, pinta la ruta minima mediante `highlightDijkstra()` y renderiza una tabla de nodos procesados, distancias y relajaciones. Cada distancia se presenta como `[Distancia, Predecesor]` para coincidir con el formato academico de los talleres.
 
+Los valores desconocidos se presentan con `-` en lugar de `?`, tanto en el panel como en el reporte.
+
 ## `restoreSolutionView(result)`
 
 Centraliza la presentacion de una solucion nueva o importada:

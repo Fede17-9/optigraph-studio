@@ -49,6 +49,7 @@ class GraphManager {
         this._history = [];
         this._historyIndex = -1;
         this._historySuspended = false;
+        this.formalLabels = new Map();
 
         this._initNetwork();
         this._recordHistory();
@@ -97,6 +98,9 @@ class GraphManager {
         };
 
         this.network = new vis.Network(this.container, data, options);
+        this.formalLabelLayer = document.createElement('div');
+        this.formalLabelLayer.className = 'dijkstra-label-layer';
+        this.container.appendChild(this.formalLabelLayer);
         this._bindEvents();
     }
 
@@ -148,6 +152,10 @@ class GraphManager {
                 this.promptManageEdge(edgeId);
             }
         });
+
+        // Reposicionar las etiquetas academicas cuando Vis.js redibuja, arrastra
+        // nodos o cambia la escala del lienzo.
+        this.network.on('afterDrawing', () => this.positionFormalLabels());
 
         // Notificar cambios reactivos de nodos y aristas a la capa de UI.
         this.nodes.on('*', () => {
@@ -586,8 +594,12 @@ class GraphManager {
      * @returns {void}
      */
     resetVisualStyles() {
+        this.formalLabels.clear();
+        if (this.formalLabelLayer) this.formalLabelLayer.innerHTML = '';
         this.nodes.update(this.nodes.get().map(node => ({
             id: node.id,
+            label: node.label,
+            title: '',
             color: {
                 background: '#38bdf8',
                 border: '#0284c7',
@@ -675,15 +687,48 @@ class GraphManager {
 
             const formattedDist = dist === Infinity ? '∞' : dist;
             const formattedPred = (pred === null || pred === undefined) ? '-' : pred;
+            const formattedIter = (iter === '?' || iter === null || iter === undefined) ? '-' : iter;
 
-            // Muestra el nombre original del nodo y la notacion formal [u_j, pred]_(k)
+            // Mantener la bolita pequena y conservar la notacion academica en una
+            // etiqueta lateral persistente, independiente del tamano del nodo.
+            this.formalLabels.set(node.id, `[${formattedDist}, ${formattedPred}]_(${formattedIter})`);
             return {
                 id: node.id,
-                label: `${node.label || node.id}\n[${formattedDist}, ${formattedPred}]_(${iter})`
+                label: node.label || node.id,
+                title: `${node.label || node.id}\n[${formattedDist}, ${formattedPred}]_(${formattedIter})`
             };
         });
 
         this.nodes.update(updatedNodes);
+        this.positionFormalLabels();
+    }
+
+    /**
+     * Dibuja y posiciona las etiquetas laterales de Dijkstra sobre el canvas.
+     * @returns {void}
+     */
+    positionFormalLabels() {
+        if (!this.formalLabelLayer || !this.network) return;
+
+        this.formalLabels.forEach((text, nodeId) => {
+            let labelElement = this.formalLabelLayer.querySelector(`[data-node-id="${CSS.escape(String(nodeId))}"]`);
+            if (!labelElement) {
+                labelElement = document.createElement('span');
+                labelElement.className = 'dijkstra-side-label';
+                labelElement.dataset.nodeId = String(nodeId);
+                this.formalLabelLayer.appendChild(labelElement);
+            }
+            labelElement.textContent = text;
+            const position = this.network.getPositions([nodeId])[nodeId];
+            if (!position) return;
+            const domPosition = this.network.canvasToDOM(position);
+            labelElement.style.left = `${domPosition.x}px`;
+            labelElement.style.top = `${domPosition.y}px`;
+        });
+
+        Array.from(this.formalLabelLayer.children).forEach(element => {
+            if (!this.formalLabels.has(element.dataset.nodeId)) element.remove();
+        });
     }
 
     highlightDijkstra(result) {
@@ -851,6 +896,8 @@ class GraphManager {
      */
     clear(recordHistory = true) {
         if (recordHistory) this._recordHistory();
+        this.formalLabels.clear();
+        if (this.formalLabelLayer) this.formalLabelLayer.innerHTML = '';
         this.nodes.clear();
         this.edges.clear();
         this.selectedSourceNode = null;
