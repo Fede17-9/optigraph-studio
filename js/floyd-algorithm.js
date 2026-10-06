@@ -94,7 +94,8 @@ class FloydJuanManager {
      * - Si hay arco dirigido (from -> to) con peso W: D[from][to] = W (D[to][from] = Infinity salvo arco explícito).
      * - Si hay arco no dirigido (bidireccional) con peso W: D[from][to] = W y D[to][from] = W.
      * - Si no hay conexión directa: D[i][j] = Infinity.
-     * - Matriz P^(0): P[i][j] = i (nodo origen) si existe conexión directa (i != j); '-' si no hay conexión o en la diagonal.
+    * - Matriz P^(0): P[i][j] = etiqueta del nodo destino de la columna j
+    *   para toda celda fuera de la diagonal; '-' en la diagonal.
      *
      * @returns {{ D0: number[][], P0: string[][] }}
      */
@@ -103,10 +104,18 @@ class FloydJuanManager {
         const D0 = Array.from({ length: n }, () => Array(n).fill(Infinity));
         const P0 = Array.from({ length: n }, () => Array(n).fill('-'));
 
-        // Regla 1: Diagonal principal en 0
+        // Regla 1: diagonal principal en 0 y sin pivote/predecesor.
         for (let i = 0; i < n; i++) {
             D0[i][i] = 0;
             P0[i][i] = '-';
+        }
+
+        // Regla académica: cada columna j inicia con su propia etiqueta como
+        // recorrido candidato, incluso cuando todavía no existe conexión directa.
+        for (let i = 0; i < n; i++) {
+            for (let j = 0; j < n; j++) {
+                if (i !== j) P0[i][j] = this.nodeLabels[j];
+            }
         }
 
         // Regla 2 y 3: Conexiones dirigidas o bidireccionales
@@ -123,14 +132,14 @@ class FloydJuanManager {
             // Arco from -> to
             if (weight < D0[fromIdx][toIdx]) {
                 D0[fromIdx][toIdx] = weight;
-                P0[fromIdx][toIdx] = this.nodeLabels[fromIdx];
+                P0[fromIdx][toIdx] = this.nodeLabels[toIdx];
             }
 
             // Si es no dirigido, replicar to -> from
             if (!isDirected) {
                 if (weight < D0[toIdx][fromIdx]) {
                     D0[toIdx][fromIdx] = weight;
-                    P0[toIdx][fromIdx] = this.nodeLabels[toIdx];
+                    P0[toIdx][fromIdx] = this.nodeLabels[fromIdx];
                 }
             }
         });
@@ -188,8 +197,9 @@ class FloydJuanManager {
                             const oldVal = D[i][j];
                             nextD[i][j] = candidate;
 
-                            // Actualización del predecesor: P^(k)[i][j] = P^(k-1)[k][j]
-                            nextP[i][j] = P[k][j];
+                            // Convención académica: P^(k)[i][j] guarda la
+                            // etiqueta del nodo pivote k que mejora el camino.
+                            nextP[i][j] = pivotLabel;
 
                             stepUpdates.push({
                                 i,
@@ -237,8 +247,8 @@ class FloydJuanManager {
     }
 
     /**
-     * Reconstruye de forma estrictamente RECURSIVA la ruta óptima entre dos nodos
-     * a partir de la matriz de recorridos/predecesores P.
+         * Reconstruye de forma estrictamente RECURSIVA la ruta óptima entre dos nodos
+         * a partir de la matriz P, interpretando sus celdas como pivotes intermedios.
      *
      * @param {string|number} startNodeId Identificador del nodo origen.
      * @param {string|number} targetNodeId Identificador del nodo destino.
@@ -280,27 +290,33 @@ class FloydJuanManager {
         }
 
         /**
-         * Función recursiva auxiliar que recorre la cadena de predecesores P[i][j]:
-         * Si origen == destino retorna [origen].
-         * En caso contrario busca el predecesor pred de destino y concatena:
-         * camino(origen, pred) + [destino].
+         * Función recursiva auxiliar basada en la convención de Floyd:
+         * - Si P[i][j] es j, la ruta es directa: [i, j].
+         * - Si P[i][j] es un pivote intermedio k, concatena i -> k y k -> j.
          */
         const recursiveBuild = (srcIdx, destIdx) => {
             if (srcIdx === destIdx) {
                 return [destIdx];
             }
-            const predLabel = this.finalP[srcIdx][destIdx];
-            if (!predLabel || predLabel === '-') {
+            const pivotLabel = this.finalP[srcIdx][destIdx];
+            if (!pivotLabel || pivotLabel === '-') {
                 return null;
             }
-            const predIdx = this.nodeIndexByLabel.get(predLabel);
-            if (predIdx === undefined) {
+            const pivotIdx = this.nodeIndexByLabel.get(pivotLabel);
+            if (pivotIdx === undefined) {
                 return null;
             }
 
-            const prefix = recursiveBuild(srcIdx, predIdx);
-            if (!prefix) return null;
-            return [...prefix, destIdx];
+            // En P0, la etiqueta de la columna destino representa una conexión
+            // directa cuando la distancia final es finita.
+            if (pivotIdx === destIdx) {
+                return [srcIdx, destIdx];
+            }
+
+            const leftPath = recursiveBuild(srcIdx, pivotIdx);
+            const rightPath = recursiveBuild(pivotIdx, destIdx);
+            if (!leftPath || !rightPath) return null;
+            return [...leftPath, ...rightPath.slice(1)];
         };
 
         const pathIndices = recursiveBuild(u, v);
