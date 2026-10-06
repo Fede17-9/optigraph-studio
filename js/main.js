@@ -48,6 +48,11 @@ document.addEventListener("DOMContentLoaded", () => {
     const dijkstraModeEl = document.getElementById("dijkstra-mode");
     const btnAlgorithmMst = document.getElementById("btn-algorithm-mst");
     const btnAlgorithmDijkstra = document.getElementById("btn-algorithm-dijkstra");
+    const btnAlgorithmFloyd = document.getElementById("btn-algorithm-floyd");
+    const floydStartNode = document.getElementById("floyd-start-node");
+    const floydTargetNode = document.getElementById("floyd-target-node");
+    const btnFloydQueryPath = document.getElementById("btn-floyd-query-path");
+    const floydRouteResultContainer = document.getElementById("floyd-route-result-container");
     const procedureSubtitle = document.querySelector('#procedure-panel p');
     const totalWeightLabel = document.getElementById('total-weight-label');
     const legendPrimary = document.getElementById('legend-primary');
@@ -55,16 +60,74 @@ document.addEventListener("DOMContentLoaded", () => {
     const legendOther = document.getElementById('legend-other');
     const exportResultLabel = document.getElementById('export-result-label');
 
+    let currentFloydSolver = null;
+
+    const populateFloydNodeSelects = () => {
+        if (!floydStartNode || !floydTargetNode) return;
+        const nodes = graphManager.nodes.get();
+        const prevStart = floydStartNode.value;
+        const prevTarget = floydTargetNode.value;
+
+        const optionsHtml = [
+            '<option value="" disabled selected>Seleccione nodo...</option>',
+            ...nodes.map(n => `<option value="${n.id}">Nodo ${n.label || n.id}</option>`)
+        ].join('');
+
+        floydStartNode.innerHTML = optionsHtml;
+        floydTargetNode.innerHTML = optionsHtml;
+
+        if (nodes.some(n => n.id === prevStart)) floydStartNode.value = prevStart;
+        if (nodes.some(n => n.id === prevTarget)) floydTargetNode.value = prevTarget;
+    };
+
     const updateAlgorithmUi = () => {
         const isDijkstra = activeAlgorithm === 'dijkstra';
+        const isFloyd = activeAlgorithm === 'floyd';
+
         document.body.classList.toggle('dijkstra-active', isDijkstra);
-        btnSolve.innerHTML = isDijkstra ? '<span>⚡</span> <span>Resolver Dijkstra</span>' : '<span>⚡</span> <span>Resolver AEM</span>';
-        if (procedureSubtitle) procedureSubtitle.innerHTML = isDijkstra ? 'Evolución de distancias y relajaciones' : 'Evolución de los conjuntos k, C<sub>k</sub> y C̄<sub>k</sub>';
-        if (totalWeightLabel) totalWeightLabel.innerText = isDijkstra ? 'Distancia' : 'Peso total AEM';
-        if (legendPrimary) legendPrimary.innerHTML = isDijkstra ? '<i class="legend-line legend-line-dijkstra"></i>Ruta mínima' : '<i class="legend-line legend-line-mst"></i>AEM';
-        if (legendSecondary) legendSecondary.innerHTML = isDijkstra ? '<i class="legend-line legend-line-relaxed"></i>Relajada' : '<i class="legend-line legend-line-tie"></i>Empate';
+        document.body.classList.toggle('floyd-active', isFloyd);
+
+        btnSolve.innerHTML = isFloyd
+            ? '<span>⚡</span> <span>Resolver Floyd (Juan)</span>'
+            : isDijkstra
+                ? '<span>⚡</span> <span>Resolver Dijkstra</span>'
+                : '<span>⚡</span> <span>Resolver AEM</span>';
+
+        if (procedureSubtitle) {
+            procedureSubtitle.innerHTML = isFloyd
+                ? 'Matrices paso a paso D<sup>(k)</sup> y P<sup>(k)</sup>'
+                : isDijkstra
+                    ? 'Evolución de distancias y relajaciones'
+                    : 'Evolución de los conjuntos k, C<sub>k</sub> y C̄<sub>k</sub>';
+        }
+
+        if (totalWeightLabel) {
+            totalWeightLabel.innerText = isFloyd ? 'Dist. Ruta' : isDijkstra ? 'Distancia' : 'Peso total AEM';
+        }
+
+        if (legendPrimary) {
+            legendPrimary.innerHTML = isFloyd
+                ? '<i class="legend-line legend-line-floyd"></i>Ruta Floyd'
+                : isDijkstra
+                    ? '<i class="legend-line legend-line-dijkstra"></i>Ruta mínima'
+                    : '<i class="legend-line legend-line-mst"></i>AEM';
+        }
+
+        if (legendSecondary) {
+            legendSecondary.innerHTML = isFloyd
+                ? '<i class="legend-line legend-line-other"></i>Sin ruta'
+                : isDijkstra
+                    ? '<i class="legend-line legend-line-relaxed"></i>Relajada'
+                    : '<i class="legend-line legend-line-tie"></i>Empate';
+        }
+
         if (legendOther) legendOther.innerHTML = '<i class="legend-line legend-line-other"></i>Sin seleccionar';
-        if (exportResultLabel) exportResultLabel.innerText = isDijkstra ? 'Exportar Dijkstra' : 'Exportar AEM';
+
+        if (exportResultLabel) {
+            exportResultLabel.innerText = isFloyd ? 'Exportar Floyd' : isDijkstra ? 'Exportar Dijkstra' : 'Exportar AEM';
+        }
+
+        populateFloydNodeSelects();
     };
 
     const modalClasses = graphManager.getModalClasses();
@@ -72,6 +135,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const updateHistoryButtons = () => {
         btnUndo.disabled = !graphManager.canUndo();
         btnRedo.disabled = !graphManager.canRedo();
+        populateFloydNodeSelects();
     };
 
     graphManager.onGraphChange = updateHistoryButtons;
@@ -81,6 +145,7 @@ document.addEventListener("DOMContentLoaded", () => {
         activeAlgorithm = 'mst';
         btnAlgorithmMst.className = 'px-4 py-1.5 text-xs font-semibold rounded-lg bg-emerald-500 text-slate-900 shadow';
         btnAlgorithmDijkstra.className = 'px-4 py-1.5 text-xs font-semibold rounded-lg text-slate-500';
+        if (btnAlgorithmFloyd) btnAlgorithmFloyd.className = 'px-4 py-1.5 text-xs font-semibold rounded-lg text-slate-500';
         graphManager.resetVisualStyles();
         updateAlgorithmUi();
         resetUI();
@@ -90,10 +155,23 @@ document.addEventListener("DOMContentLoaded", () => {
         activeAlgorithm = 'dijkstra';
         btnAlgorithmDijkstra.className = 'px-4 py-1.5 text-xs font-semibold rounded-lg bg-emerald-500 text-slate-900 shadow';
         btnAlgorithmMst.className = 'px-4 py-1.5 text-xs font-semibold rounded-lg text-slate-500';
+        if (btnAlgorithmFloyd) btnAlgorithmFloyd.className = 'px-4 py-1.5 text-xs font-semibold rounded-lg text-slate-500';
         graphManager.resetVisualStyles();
         updateAlgorithmUi();
         resetUI();
     });
+
+    if (btnAlgorithmFloyd) {
+        btnAlgorithmFloyd.addEventListener("click", () => {
+            activeAlgorithm = 'floyd';
+            btnAlgorithmFloyd.className = 'px-4 py-1.5 text-xs font-semibold rounded-lg bg-emerald-500 text-slate-900 shadow';
+            btnAlgorithmMst.className = 'px-4 py-1.5 text-xs font-semibold rounded-lg text-slate-500';
+            btnAlgorithmDijkstra.className = 'px-4 py-1.5 text-xs font-semibold rounded-lg text-slate-500';
+            graphManager.resetVisualStyles();
+            updateAlgorithmUi();
+            resetUI();
+        });
+    }
 
     updateAlgorithmUi();
 
@@ -221,7 +299,9 @@ document.addEventListener("DOMContentLoaded", () => {
                 lastStartNode = importedSolution.startNode;
                 activeAlgorithm = importedSolution.result.algorithm || graphData.algorithm || 'mst';
                 updateAlgorithmUi();
-                if (activeAlgorithm === 'dijkstra') {
+                if (activeAlgorithm === 'floyd') {
+                    restoreFloydView(importedSolution.result);
+                } else if (activeAlgorithm === 'dijkstra') {
                     restoreDijkstraView(importedSolution.result);
                 } else {
                     restoreSolutionView(importedSolution.result);
@@ -270,13 +350,17 @@ document.addEventListener("DOMContentLoaded", () => {
             return;
         }
 
+        const isFloyd = activeAlgorithm === 'floyd';
         const isDijkstra = activeAlgorithm === 'dijkstra';
-        downloadJson(isDijkstra ? 'optigraph-dijkstra.json' : 'optigraph-aem.json', {
+        const exportFileName = isFloyd ? 'optigraph-floyd.json' : isDijkstra ? 'optigraph-dijkstra.json' : 'optigraph-aem.json';
+        const exportAlgorithm = isFloyd ? 'floyd' : isDijkstra ? 'dijkstra' : 'mst';
+
+        downloadJson(exportFileName, {
             version: 2,
-            algorithm: isDijkstra ? 'dijkstra' : 'mst',
+            algorithm: exportAlgorithm,
             exportedAt: new Date().toISOString(),
             graph: graphManager.getGraphData(),
-            result: isDijkstra ? lastSolveResult : {
+            result: isFloyd || isDijkstra ? lastSolveResult : {
                 startNode: lastStartNode,
                 selectedEdges: lastSolveResult.selectedEdges,
                 tiedEdges: lastSolveResult.tiedEdges,
@@ -288,10 +372,12 @@ document.addEventListener("DOMContentLoaded", () => {
 
     btnExportReport.addEventListener("click", () => {
         if (!lastSolveResult) {
-            Swal.fire({ icon: 'info', title: 'Aún no hay un AEM calculado', text: 'Resuelva la red antes de exportar el reporte.', confirmButtonColor: '#10b981', customClass: modalClasses });
+            Swal.fire({ icon: 'info', title: 'Aún no hay un resultado calculado', text: 'Resuelva la red antes de exportar el reporte.', confirmButtonColor: '#10b981', customClass: modalClasses });
             return;
         }
-        if (activeAlgorithm === 'dijkstra') {
+        if (activeAlgorithm === 'floyd') {
+            downloadFloydReport('optigraph-reporte-floyd.html', graphManager.getGraphData(), lastSolveResult);
+        } else if (activeAlgorithm === 'dijkstra') {
             downloadDijkstraReport('optigraph-reporte-dijkstra.html', graphManager.getGraphData(), lastSolveResult);
         } else {
             downloadReport('optigraph-reporte-aem.html', graphManager.getGraphData(), lastStartNode, lastSolveResult);
@@ -329,6 +415,11 @@ document.addEventListener("DOMContentLoaded", () => {
                     confirmButton: 'og-modal-confirm'
                 }
             });
+            return;
+        }
+
+        if (activeAlgorithm === 'floyd') {
+            await solveFloyd(nodes, edges);
             return;
         }
 
@@ -432,9 +523,12 @@ document.addEventListener("DOMContentLoaded", () => {
         if (tieCountEl) tieCountEl.innerText = "—";
         lastSolveResult = null;
         lastStartNode = null;
+        currentFloydSolver = null;
+        if (floydRouteResultContainer) floydRouteResultContainer.innerHTML = '';
+        const solveLabel = activeAlgorithm === 'floyd' ? 'Floyd (Juan)' : activeAlgorithm === 'dijkstra' ? 'Dijkstra' : 'AEM';
         document.getElementById("steps-container").innerHTML = `
             <div class="text-center py-12 text-slate-500 text-xs">
-                Haga clic en "Resolver ${activeAlgorithm === 'dijkstra' ? 'Dijkstra' : 'AEM'}" para generar la secuencia de iteraciones.
+                Haga clic en "Resolver ${solveLabel}" para generar la secuencia de iteraciones.
             </div>`;
         const statusEl = document.getElementById("status-indicator");
         statusEl.className = "inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-slate-700 text-slate-300";
@@ -522,6 +616,162 @@ document.addEventListener("DOMContentLoaded", () => {
         } catch (error) {
             Swal.fire({ icon: 'error', title: 'No se pudo ejecutar Dijkstra', text: error.message, confirmButtonColor: '#f43f5e', customClass: { ...modalClasses, confirmButton: 'og-modal-deny' } });
         }
+    }
+
+    /**
+     * Resuelve Floyd-Warshall sobre la red actual y presenta la bitácora matricial.
+     * @param {Object[]} nodes Nodos actuales.
+     * @param {Object[]} edges Aristas actuales.
+     * @returns {Promise<void>}
+     */
+    async function solveFloyd(nodes, edges) {
+        try {
+            const solver = new FloydJuanManager(nodes, edges);
+            const result = solver.solve();
+            currentFloydSolver = solver;
+            lastSolveResult = result;
+
+            restoreFloydView(result);
+
+            // Obtener nodos para consulta inicial
+            let start = floydStartNode?.value;
+            let target = floydTargetNode?.value;
+
+            if (!start || !target || start === target) {
+                if (nodes.length >= 2) {
+                    start = nodes[0].id;
+                    target = nodes[1].id;
+                    if (floydStartNode) floydStartNode.value = start;
+                    if (floydTargetNode) floydTargetNode.value = target;
+                }
+            }
+
+            if (start && target) {
+                queryFloydPath(start, target);
+            }
+
+            Swal.fire({
+                icon: 'success',
+                title: '¡Floyd-Warshall Calculado con Éxito!',
+                html: `
+                    <p class="text-xs text-slate-300 mb-2">Se completaron las <strong>${result.totalIterations} iteraciones</strong> del algoritmo.</p>
+                    <p class="text-[11px] text-slate-400">Total de mejoras encontradas: <strong class="text-sky-400">${result.totalRelaxations}</strong></p>
+                `,
+                confirmButtonColor: '#10b981',
+                customClass: { ...modalClasses, confirmButton: 'og-modal-confirm' }
+            });
+
+        } catch (error) {
+            const statusEl = document.getElementById("status-indicator");
+            statusEl.className = "inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-rose-900/60 text-rose-300 border border-rose-600 shadow-sm";
+            statusEl.innerText = "🔴 ERROR EN RED";
+
+            Swal.fire({
+                icon: 'error',
+                title: 'No se pudo ejecutar Floyd-Warshall',
+                text: error.message,
+                confirmButtonColor: '#f43f5e',
+                customClass: { ...modalClasses, confirmButton: 'og-modal-deny' }
+            });
+        }
+    }
+
+    /**
+     * Restaura la vista de Floyd-Warshall en el canvas, footer y panel de procedimiento.
+     * @param {Object} result Resultado producido por FloydJuanManager.
+     */
+    function restoreFloydView(result) {
+        renderFloydStepTables(result.stepHistory, result.nodeLabels);
+        const statusEl = document.getElementById("status-indicator");
+        statusEl.className = "inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-emerald-900/60 text-emerald-300 border border-emerald-600 shadow-sm";
+        statusEl.innerText = "🟢 FLOYD-WARSHALL CALCULADO";
+        if (iterationCountEl) iterationCountEl.innerText = result.totalIterations;
+        if (tieCountEl) tieCountEl.innerText = result.totalRelaxations;
+    }
+
+    /**
+     * Consulta y resalta la ruta óptima entre dos nodos usando FloydJuanManager.
+     * @param {string|number} startNodeId Nodo de origen.
+     * @param {string|number} targetNodeId Nodo de destino.
+     */
+    function queryFloydPath(startNodeId, targetNodeId) {
+        const nodes = graphManager.nodes.get();
+        const edges = graphManager.edges.get();
+
+        if (!currentFloydSolver) {
+            currentFloydSolver = new FloydJuanManager(nodes, edges);
+            const result = currentFloydSolver.solve();
+            lastSolveResult = result;
+            restoreFloydView(result);
+        }
+
+        try {
+            const route = currentFloydSolver.reconstructPath(startNodeId, targetNodeId);
+            const startLabel = graphManager.nodes.get(startNodeId)?.label || startNodeId;
+            const targetLabel = graphManager.nodes.get(targetNodeId)?.label || targetNodeId;
+
+            if (route.reachable) {
+                if (totalWeightEl) totalWeightEl.innerText = `${route.distance} u`;
+                graphManager.highlightFloyd(route);
+
+                if (floydRouteResultContainer) {
+                    floydRouteResultContainer.innerHTML = `
+                        <div class="floyd-route-result-card">
+                            <div class="flex justify-between items-center mb-1">
+                                <span class="font-bold text-sky-300">Ruta ${startLabel} → ${targetLabel}</span>
+                                <span class="font-mono bg-sky-900/60 text-sky-200 px-2 py-0.5 rounded border border-sky-700">Costo: ${route.distance} u</span>
+                            </div>
+                            <div class="font-mono text-emerald-300 font-bold tracking-wide">${route.pathNodeLabels.join(' → ')}</div>
+                        </div>
+                    `;
+                }
+            } else {
+                if (totalWeightEl) totalWeightEl.innerText = '∞';
+                graphManager.resetVisualStyles();
+
+                if (floydRouteResultContainer) {
+                    floydRouteResultContainer.innerHTML = `
+                        <div class="mt-2 p-2.5 rounded-lg border border-amber-600/50 bg-amber-950/40 text-amber-300 text-xs font-mono">
+                            ⚠️ No existe camino alcanzable de ${startLabel} a ${targetLabel} (Distancia = ∞).
+                        </div>
+                    `;
+                }
+
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Sin Camino Alcanzable',
+                    text: `No existe camino posible entre Nodo ${startLabel} y Nodo ${targetLabel} (Distancia: ∞).`,
+                    confirmButtonColor: '#f59e0b',
+                    customClass: modalClasses
+                });
+            }
+        } catch (error) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Error al consultar ruta',
+                text: error.message,
+                confirmButtonColor: '#f43f5e',
+                customClass: modalClasses
+            });
+        }
+    }
+
+    if (btnFloydQueryPath) {
+        btnFloydQueryPath.addEventListener("click", () => {
+            const start = floydStartNode?.value;
+            const target = floydTargetNode?.value;
+            if (!start || !target) {
+                Swal.fire({
+                    icon: 'info',
+                    title: 'Seleccione Nodos',
+                    text: 'Debe elegir un nodo de origen y un nodo de destino en el panel lateral.',
+                    confirmButtonColor: '#10b981',
+                    customClass: modalClasses
+                });
+                return;
+            }
+            queryFloydPath(start, target);
+        });
     }
 });
 
@@ -666,6 +916,185 @@ function downloadDijkstraReport(filename, graphData, result) {
     const distance = result.targetNode === null ? '—' : result.distances[result.targetNode];
     const report = `<!doctype html><html lang="es"><head><meta charset="UTF-8"><title>Reporte Dijkstra</title><style>body{font-family:Arial,sans-serif;color:#0f172a;max-width:1100px;margin:2rem auto;padding:0 1rem}h1{color:#047857}table{border-collapse:collapse;width:100%;font-size:12px}th,td{border:1px solid #cbd5e1;padding:8px;text-align:left;vertical-align:top}th{background:#d1fae5}.summary{display:flex;gap:2rem;margin:1rem 0;font-weight:bold;flex-wrap:wrap}</style></head><body><h1>OptiGraph Studio — Reporte Dijkstra</h1><div class="summary"><span>Origen: ${result.startNode}</span><span>Destino: ${destination}</span><span>Distancia: ${distance}</span><span>Pasos: ${result.stepTable.length}</span></div><p>Nodos: ${graphData.nodes.length} · Aristas: ${graphData.edges.length}</p><table><thead><tr><th>Paso</th><th>Nodo procesado</th><th>Distancias [Dist, Previo]</th><th>Relajaciones</th><th>Empate</th></tr></thead><tbody>${steps}</tbody></table></body></html>`;
     const blob = new Blob([report], { type: 'text/html;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    setTimeout(() => { URL.revokeObjectURL(url); link.remove(); }, 100);
+}
+
+/**
+ * Renderiza los bloques de cada iteración k de Floyd-Warshall según la plantilla Excel:
+ * - Título: "Iteración k (Nodo Pivote X)"
+ * - Tablas emparejadas: Distancias (azul) y Recorridos (verde)
+ * - Fila y columna pivote resaltadas en amarillo suave en la matriz de distancias
+ * - Celdas modificadas en negrita y con borde luminoso
+ * - Diagonal D[i][i] = 0 formateada limpiamente
+ *
+ * @param {Array<Object>} stepHistory Historial de pasos generado por FloydJuanManager.
+ * @param {string[]} nodeLabels Etiquetas legibles de los nodos.
+ * @returns {void}
+ */
+function renderFloydStepTables(stepHistory, nodeLabels) {
+    const container = document.getElementById("steps-container");
+    if (!container) return;
+    container.innerHTML = "";
+
+    stepHistory.forEach(step => {
+        const stepBlock = document.createElement("div");
+        stepBlock.className = "floyd-step-block";
+
+        const badgeText = step.k === 0 ? "Paso Base Inicial" : `${step.updatedCells.length} mejoras`;
+
+        // 1. Construir filas de la Matriz D (Distancias)
+        let dRowsHtml = `<tr><th class="floyd-corner">D\\to</th>`;
+        nodeLabels.forEach((label, colIdx) => {
+            const isColPivot = step.pivotIndex !== null && colIdx === step.pivotIndex;
+            dRowsHtml += `<th class="${isColPivot ? 'floyd-pivot-highlight' : ''}">${label}</th>`;
+        });
+        dRowsHtml += `</tr>`;
+
+        nodeLabels.forEach((rowLabel, rowIdx) => {
+            const isRowPivot = step.pivotIndex !== null && rowIdx === step.pivotIndex;
+            dRowsHtml += `<tr><th class="${isRowPivot ? 'floyd-pivot-highlight' : ''}">${rowLabel}</th>`;
+            nodeLabels.forEach((_, colIdx) => {
+                const rawVal = step.D[rowIdx][colIdx];
+                const val = rawVal === Infinity ? '∞' : rawVal;
+                const isDiag = rowIdx === colIdx;
+                const isPivotIntersection = step.pivotIndex !== null && rowIdx === step.pivotIndex && colIdx === step.pivotIndex;
+                const isPivotRowCol = step.pivotIndex !== null && (rowIdx === step.pivotIndex || colIdx === step.pivotIndex);
+                const isUpdated = step.updatedCells.some(u => u.i === rowIdx && u.j === colIdx);
+
+                const cellClasses = [];
+                if (isPivotIntersection) {
+                    cellClasses.push('floyd-pivot-intersection');
+                } else if (isPivotRowCol) {
+                    cellClasses.push('floyd-pivot-highlight');
+                }
+                if (isDiag) cellClasses.push('floyd-cell-diag');
+                if (isUpdated) cellClasses.push('floyd-cell-updated');
+
+                dRowsHtml += `<td class="${cellClasses.join(' ')}">${val}</td>`;
+            });
+            dRowsHtml += `</tr>`;
+        });
+
+        // 2. Construir filas de la Matriz P (Recorridos)
+        let pRowsHtml = `<tr><th class="floyd-corner">P\\to</th>`;
+        nodeLabels.forEach(label => {
+            pRowsHtml += `<th>${label}</th>`;
+        });
+        pRowsHtml += `</tr>`;
+
+        nodeLabels.forEach((rowLabel, rowIdx) => {
+            pRowsHtml += `<tr><th>${rowLabel}</th>`;
+            nodeLabels.forEach((_, colIdx) => {
+                const val = step.P[rowIdx][colIdx] || '-';
+                const isDiag = rowIdx === colIdx;
+                const isUpdated = step.updatedCells.some(u => u.i === rowIdx && u.j === colIdx);
+
+                const cellClasses = [];
+                if (isDiag) cellClasses.push('floyd-cell-diag');
+                if (isUpdated) cellClasses.push('floyd-cell-updated');
+
+                pRowsHtml += `<td class="${cellClasses.join(' ')}">${val}</td>`;
+            });
+            pRowsHtml += `</tr>`;
+        });
+
+        stepBlock.innerHTML = `
+            <div class="floyd-step-header">
+                <span class="floyd-step-title">${step.title}</span>
+                <span class="floyd-step-badge">${badgeText}</span>
+            </div>
+            <div class="floyd-tables-grid">
+                <div class="floyd-table-card">
+                    <div class="floyd-header-distance">
+                        <span>📊 Matriz de Distancias D<sup>(${step.k})</sup></span>
+                        <span class="text-[10px] text-blue-200 font-normal">Pivote en amarillo</span>
+                    </div>
+                    <div class="floyd-table-scroll">
+                        <table class="floyd-matrix-table">
+                            ${dRowsHtml}
+                        </table>
+                    </div>
+                </div>
+
+                <div class="floyd-table-card">
+                    <div class="floyd-header-route">
+                        <span>🧭 Matriz de Recorridos P<sup>(${step.k})</sup></span>
+                        <span class="text-[10px] text-emerald-200 font-normal">Predecesores</span>
+                    </div>
+                    <div class="floyd-table-scroll">
+                        <table class="floyd-matrix-table">
+                            ${pRowsHtml}
+                        </table>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        container.appendChild(stepBlock);
+    });
+}
+
+/**
+ * Genera un reporte HTML autocontenido para Floyd-Warshall.
+ * @param {string} filename Nombre del archivo a descargar.
+ * @param {Object} graphData Red utilizada.
+ * @param {Object} result Resultado de FloydJuanManager.
+ * @returns {void}
+ */
+function downloadFloydReport(filename, graphData, result) {
+    const nodeLabels = result.nodeLabels;
+    const blocksHtml = result.stepHistory.map(step => {
+        let dRows = `<tr><th>D\\to</th>${nodeLabels.map(l => `<th>${l}</th>`).join('')}</tr>`;
+        nodeLabels.forEach((rl, rIdx) => {
+            dRows += `<tr><th>${rl}</th>`;
+            nodeLabels.forEach((_, cIdx) => {
+                const val = step.D[rIdx][cIdx] === Infinity ? '∞' : step.D[rIdx][cIdx];
+                const isPivot = step.pivotIndex !== null && (rIdx === step.pivotIndex || cIdx === step.pivotIndex);
+                const isUpdated = step.updatedCells.some(u => u.i === rIdx && u.j === cIdx);
+                const bg = isPivot ? 'background:#fef08a;color:#854d0e;font-weight:bold;' : isUpdated ? 'background:#bae6fd;font-weight:bold;' : '';
+                dRows += `<td style="${bg}">${val}</td>`;
+            });
+            dRows += `</tr>`;
+        });
+
+        let pRows = `<tr><th>P\\to</th>${nodeLabels.map(l => `<th>${l}</th>`).join('')}</tr>`;
+        nodeLabels.forEach((rl, rIdx) => {
+            pRows += `<tr><th>${rl}</th>`;
+            nodeLabels.forEach((_, cIdx) => {
+                const val = step.P[rIdx][cIdx] || '-';
+                const isUpdated = step.updatedCells.some(u => u.i === rIdx && u.j === cIdx);
+                const bg = isUpdated ? 'background:#bbf7d0;font-weight:bold;' : '';
+                pRows += `<td style="${bg}">${val}</td>`;
+            });
+            pRows += `</tr>`;
+        });
+
+        return `
+            <div style="margin-bottom:2rem;page-break-inside:avoid;">
+                <h3 style="color:#0369a1;border-bottom:2px solid #e0f2fe;padding-bottom:4px;">${step.title} (${step.updatedCells.length} mejoras)</h3>
+                <div style="display:flex;gap:1.5rem;flex-wrap:wrap;">
+                    <div>
+                        <h4 style="color:#1d4ed8;margin:4px 0;">Matriz de Distancias D^(${step.k})</h4>
+                        <table>${dRows}</table>
+                    </div>
+                    <div>
+                        <h4 style="color:#047857;margin:4px 0;">Matriz de Recorridos P^(${step.k})</h4>
+                        <table>${pRows}</table>
+                    </div>
+                </div>
+            </div>
+        `;
+    }).join('');
+
+    const reportHtml = `<!doctype html><html lang="es"><head><meta charset="UTF-8"><title>Reporte Floyd-Warshall</title><style>body{font-family:Arial,sans-serif;color:#0f172a;max-width:1150px;margin:2rem auto;padding:0 1rem}h1{color:#0284c7}table{border-collapse:collapse;font-size:11px;font-family:monospace;text-align:center;margin-bottom:1rem}th,td{border:1px solid #cbd5e1;padding:5px 7px;min-width:24px}th{background:#f1f5f9;font-weight:bold}.summary{display:flex;gap:2rem;margin:1rem 0;font-weight:bold}</style></head><body><h1>OptiGraph Studio — Reporte Floyd-Warshall</h1><div class="summary"><span>Nodos: ${graphData.nodes.length}</span><span>Aristas: ${graphData.edges.length}</span><span>Iteraciones: ${result.totalIterations}</span><span>Mejoras Totales: ${result.totalRelaxations}</span></div>${blocksHtml}</body></html>`;
+
+    const blob = new Blob([reportHtml], { type: 'text/html;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
