@@ -367,39 +367,58 @@ class GraphManager {
      * @returns {Promise<void>} Promesa resuelta cuando termina el modal.
      */
     async promptAddEdge(fromNode, toNode) {
-        const { value: weight } = await Swal.fire({
-            title: `Conectar ${fromNode} ↔ ${toNode}`,
-            input: 'number',
-            inputLabel: 'Ingrese el peso o valor del arco:',
-            inputPlaceholder: 'Ej. 5',
+        const { value: edgeData } = await Swal.fire({
+            title: `Conectar ${fromNode} y ${toNode}`,
+            html: `
+                <label class="og-form-label" for="swal-edge-weight">Peso o valor del arco (> 0):</label>
+                <input id="swal-edge-weight" class="og-modal-input" type="number" step="any" min="0.01" placeholder="Ej. 5">
+                <label class="og-form-label" for="swal-edge-direction">Dirección del arco:</label>
+                <select id="swal-edge-direction" class="og-modal-input">
+                    <option value="directed">Dirigido (${fromNode} → ${toNode})</option>
+                    <option value="undirected">No dirigido / Bidireccional (${fromNode} ↔ ${toNode})</option>
+                </select>
+            `,
             showCancelButton: true,
             confirmButtonColor: '#10b981',
             customClass: this.getModalClasses(),
-            inputValidator: (value) => {
-                if (!value || isNaN(value) || parseFloat(value) <= 0) {
-                    return 'Ingrese un número válido mayor a 0';
+            preConfirm: () => {
+                const weightVal = document.getElementById('swal-edge-weight')?.value;
+                const dirVal = document.getElementById('swal-edge-direction')?.value;
+                const weightNum = parseFloat(weightVal);
+                if (!weightVal || isNaN(weightNum) || weightNum <= 0) {
+                    Swal.showValidationMessage('Ingrese un número válido mayor a 0');
+                    return false;
                 }
+                return {
+                    weight: weightNum,
+                    isDirected: dirVal === 'directed'
+                };
             }
         });
 
-        if (weight) {
-            const edgeId = `${fromNode}-${toNode}`;
-            const exists = this.edges.get().some(e =>
-                (e.from === fromNode && e.to === toNode) || (e.from === toNode && e.to === fromNode)
-            );
+        if (edgeData) {
+            const { weight, isDirected } = edgeData;
+            const existingEdges = this.edges.get();
+            const exists = isDirected
+                ? existingEdges.some(e => e.from === fromNode && e.to === toNode)
+                : existingEdges.some(e => (e.from === fromNode && e.to === toNode) || (e.from === toNode && e.to === fromNode));
 
             if (exists) {
-                Swal.fire('Atención', 'Ya existe una conexión entre estos nodos.', 'warning');
+                Swal.fire('Atención', 'Ya existe una conexión en esa dirección entre estos nodos.', 'warning');
                 return;
             }
 
+            const edgeId = isDirected ? `${fromNode}->${toNode}` : `${fromNode}-${toNode}`;
             this._recordHistory();
             this.edges.add({
                 id: edgeId,
                 from: fromNode,
                 to: toNode,
                 label: String(weight),
-                weight: parseFloat(weight)
+                weight: weight,
+                arrows: isDirected ? 'to' : '',
+                directed: isDirected,
+                smooth: isDirected ? { type: 'curvedCW', roundness: 0.15 } : { type: 'continuous' }
             });
             this._recordHistory();
         }
@@ -759,8 +778,71 @@ class GraphManager {
     }
 
     /**
+     * Resalta la ruta óptima calculada por Floyd-Warshall en el lienzo de Vis.js.
+     * @param {{ reachable: boolean, pathNodeIds: Array<string|number>, pathEdges: Object[] }} routeInfo Información de la ruta.
+     * @returns {void}
+     */
+    highlightFloyd(routeInfo) {
+        this.formalLabels.clear();
+        if (this.formalLabelLayer) this.formalLabelLayer.innerHTML = '';
+
+        if (!routeInfo || !routeInfo.reachable || !routeInfo.pathNodeIds || routeInfo.pathNodeIds.length === 0) {
+            this.resetVisualStyles();
+            return;
+        }
+
+        const pathNodeIdsSet = new Set(routeInfo.pathNodeIds.map(String));
+        const startId = String(routeInfo.pathNodeIds[0]);
+        const endId = String(routeInfo.pathNodeIds[routeInfo.pathNodeIds.length - 1]);
+        const pathEdgeIdsSet = new Set((routeInfo.pathEdges || []).map(e => String(e.id)));
+
+        // Resaltar nodos de la ruta
+        this.nodes.update(this.nodes.get().map(node => {
+            const nodeIdStr = String(node.id);
+            const isStart = nodeIdStr === startId;
+            const isEnd = nodeIdStr === endId;
+            const isInPath = pathNodeIdsSet.has(nodeIdStr);
+
+            if (isStart) {
+                return {
+                    id: node.id,
+                    color: { background: '#38bdf8', border: '#0284c7', highlight: { background: '#7dd3fc', border: '#38bdf8' } }
+                };
+            }
+            if (isEnd) {
+                return {
+                    id: node.id,
+                    color: { background: '#10b981', border: '#059669', highlight: { background: '#34d399', border: '#10b981' } }
+                };
+            }
+            if (isInPath) {
+                return {
+                    id: node.id,
+                    color: { background: '#f59e0b', border: '#d97706', highlight: { background: '#fbbf24', border: '#f59e0b' } }
+                };
+            }
+            return {
+                id: node.id,
+                color: { background: '#1e293b', border: '#475569', highlight: { background: '#334155', border: '#64748b' } }
+            };
+        }));
+
+        // Resaltar aristas que componen la ruta
+        this.edges.update(this.edges.get().map(edge => {
+            const isSelected = pathEdgeIdsSet.has(String(edge.id));
+            return {
+                id: edge.id,
+                color: isSelected
+                    ? { color: '#38bdf8', highlight: '#7dd3fc' }
+                    : { color: '#334155', opacity: 0.25 },
+                width: isSelected ? 5 : 1
+            };
+        }));
+    }
+
+    /**
      * Carga uno de los escenarios académicos predefinidos y ajusta el lienzo.
-     * @param {string} presetKey Clave del preset (`red1`, `red2` o `red3`).
+     * @param {string} presetKey Clave del preset (`red1`, `red2`, `red3` o `redFloyd`).
      * @returns {void}
      */
     loadPresetNetwork(presetKey) {
@@ -880,6 +962,33 @@ class GraphManager {
                 { id: 'M-N', from: 'M', to: 'N', label: '3', weight: 3 },
                 { id: 'M-O', from: 'M', to: 'O', label: '7', weight: 7 },
                 { id: 'N-O', from: 'N', to: 'O', label: '4', weight: 4 }
+            ]);
+        } else if (presetKey === 'redFloyd') {
+            // Escenario de prueba oficial de 8 nodos (Red para resolver por Floyd)
+            this.nodes.add([
+                { id: 'A', label: 'A', x: -180, y: -160 },
+                { id: 'B', label: 'B', x: 180, y: -160 },
+                { id: 'H', label: 'H', x: -320, y: 0 },
+                { id: 'C', label: 'C', x: 320, y: 0 },
+                { id: 'G', label: 'G', x: -320, y: 160 },
+                { id: 'F', label: 'F', x: -160, y: 160 },
+                { id: 'E', label: 'E', x: 160, y: 160 },
+                { id: 'D', label: 'D', x: 320, y: 160 }
+            ]);
+            this.edges.add([
+                { id: 'A-B', from: 'A', to: 'B', label: '4', weight: 4, arrows: 'to', directed: true },
+                { id: 'A-H', from: 'A', to: 'H', label: '8', weight: 8, arrows: 'to', directed: true },
+                { id: 'A-F', from: 'A', to: 'F', label: '10', weight: 10, arrows: 'to', directed: true },
+                { id: 'H-G', from: 'H', to: 'G', label: '3', weight: 3, arrows: 'to', directed: true },
+                { id: 'H-F', from: 'H', to: 'F', label: '6', weight: 6, arrows: 'to', directed: true },
+                { id: 'G-F', from: 'G', to: 'F', label: '2', weight: 2, arrows: 'to', directed: true },
+                { id: 'F-B', from: 'F', to: 'B', label: '11', weight: 11, arrows: 'to', directed: true },
+                { id: 'F-E', from: 'F', to: 'E', label: '1', weight: 1, arrows: 'to', directed: true },
+                { id: 'B-E', from: 'B', to: 'E', label: '9', weight: 9, arrows: 'to', directed: true },
+                { id: 'E-C', from: 'E', to: 'C', label: '3', weight: 3, arrows: 'to', directed: true },
+                { id: 'E-D', from: 'E', to: 'D', label: '7', weight: 7, arrows: 'to', directed: true },
+                { id: 'D-C', from: 'D', to: 'C', label: '4', weight: 4, arrows: 'to', directed: true },
+                { id: 'C-B', from: 'C', to: 'B', label: '5', weight: 5, arrows: 'to', directed: true }
             ]);
         }
 

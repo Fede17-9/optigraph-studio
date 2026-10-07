@@ -32,6 +32,7 @@
         class="px-4 py-1.5 text-xs font-semibold rounded-lg bg-emerald-500 text-slate-900 shadow">Taller 1: AEM</button>
       <button id="btn-algorithm-dijkstra" class="px-4 py-1.5 text-xs font-semibold rounded-lg text-slate-500">Taller 2:
         Dijkstra</button>
+      <button id="btn-algorithm-floyd" class="px-4 py-1.5 text-xs font-semibold rounded-lg text-slate-500">Floyd (Juan)</button>
       <button class="px-4 py-1.5 text-xs font-semibold rounded-lg text-slate-500 cursor-not-allowed" disabled>Taller 3:
         Flujo Máximo 🔒</button>
     </nav>
@@ -89,6 +90,7 @@
           <option value="red1">Red 1 (Ejemplo Clase)</option>
           <option value="red2">Red 2 (Ejemplo Clase)</option>
           <option value="red3">Red 3 (15 Nodos)</option>
+          <option value="redFloyd">Red 4: Floyd 8 Nodos (Juan)</option>
         </select>
 
         <div id="dijkstra-controls" class="dijkstra-controls">
@@ -98,6 +100,29 @@
             <option value="target">Origen a destino</option>
             <option value="all">Origen a todos</option>
           </select>
+        </div>
+
+        <div id="floyd-controls" class="floyd-controls space-y-2">
+          <div class="border-t border-slate-700 pt-2">
+            <h3 class="text-xs font-bold uppercase tracking-wider text-sky-400">Consultar Ruta Óptima</h3>
+            <p class="text-[11px] text-slate-400">Reconstruye la ruta óptima desde la matriz P:</p>
+          </div>
+          <div>
+            <label class="og-form-label" for="floyd-start-node">Nodo Origen</label>
+            <select id="floyd-start-node" class="w-full bg-slate-900 border border-slate-700 text-slate-300 text-xs rounded-lg p-2.5">
+              <option value="" disabled selected>Seleccione origen...</option>
+            </select>
+          </div>
+          <div>
+            <label class="og-form-label" for="floyd-target-node">Nodo Destino</label>
+            <select id="floyd-target-node" class="w-full bg-slate-900 border border-slate-700 text-slate-300 text-xs rounded-lg p-2.5">
+              <option value="" disabled selected>Seleccione destino...</option>
+            </select>
+          </div>
+          <button id="btn-floyd-query-path" type="button" class="tool-action-button w-full mt-1 border-sky-600 bg-sky-950/60 hover:bg-sky-900 text-sky-200">
+            <span>🔍</span> <span>Ver Ruta Óptima</span>
+          </button>
+          <div id="floyd-route-result-container"></div>
         </div>
       </div>
 
@@ -164,6 +189,7 @@
 
   <script src="js/mst-algorithm.js?v=2"></script>
   <script src="js/dijkstra-algorithm.js?v=2"></script>
+  <script src="js/floyd-algorithm.js?v=2"></script>
   <script src="js/graph-manager.js?v=2"></script>
   <script src="js/main.js?v=2"></script>
 </body>
