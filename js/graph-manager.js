@@ -990,6 +990,26 @@ class GraphManager {
                 { id: 'D-C', from: 'D', to: 'C', label: '4', weight: 4, arrows: 'to', directed: true },
                 { id: 'C-B', from: 'C', to: 'B', label: '5', weight: 5, arrows: 'to', directed: true }
             ]);
+        } else if (presetKey === 'redFloydIsac') {
+            // RED EXCLUSIVA ISAC: Estructura base preparada. Reemplazable fácilmente al recibir la imagen de la profesora.
+            this.nodes.add([
+                { id: '1', label: '1', x: -200, y: -100 },
+                { id: '2', label: '2', x: 0, y: -160 },
+                { id: '3', label: '3', x: 200, y: -100 },
+                { id: '4', label: '4', x: -200, y: 100 },
+                { id: '5', label: '5', x: 0, y: 160 },
+                { id: '6', label: '6', x: 200, y: 100 }
+            ]);
+            this.edges.add([
+                { id: '1->2', from: '1', to: '2', label: '4', weight: 4, arrows: 'to', directed: true },
+                { id: '1->4', from: '1', to: '4', label: '2', weight: 2, arrows: 'to', directed: true },
+                { id: '2->3', from: '2', to: '3', label: '5', weight: 5, arrows: 'to', directed: true },
+                { id: '2->5', from: '2', to: '5', label: '1', weight: 1, arrows: 'to', directed: true },
+                { id: '3->6', from: '3', to: '6', label: '3', weight: 3, arrows: 'to', directed: true },
+                { id: '4->5', from: '4', to: '5', label: '3', weight: 3, arrows: 'to', directed: true },
+                { id: '5->3', from: '5', to: '3', label: '2', weight: 2, arrows: 'to', directed: true },
+                { id: '5->6', from: '5', to: '6', label: '6', weight: 6, arrows: 'to', directed: true }
+            ]);
         }
 
         this._recordHistory();
