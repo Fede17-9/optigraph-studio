@@ -990,6 +990,26 @@ class GraphManager {
                 { id: 'D-C', from: 'D', to: 'C', label: '4', weight: 4, arrows: 'to', directed: true },
                 { id: 'C-B', from: 'C', to: 'B', label: '5', weight: 5, arrows: 'to', directed: true }
             ]);
+        } else if (presetKey === 'redFloydIsac') {
+            // RED EXCLUSIVA ISAC: Nodos con letras A-F en orden alfabético
+            this.nodes.add([
+                { id: 'A', label: 'A', x: -200, y: -100 },
+                { id: 'B', label: 'B', x: 0, y: -160 },
+                { id: 'C', label: 'C', x: 200, y: -100 },
+                { id: 'D', label: 'D', x: -200, y: 100 },
+                { id: 'E', label: 'E', x: 0, y: 160 },
+                { id: 'F', label: 'F', x: 200, y: 100 }
+            ]);
+            this.edges.add([
+                { id: 'A->B', from: 'A', to: 'B', label: '4', weight: 4, arrows: 'to', directed: true },
+                { id: 'A->D', from: 'A', to: 'D', label: '2', weight: 2, arrows: 'to', directed: true },
+                { id: 'B->C', from: 'B', to: 'C', label: '5', weight: 5, arrows: 'to', directed: true },
+                { id: 'B->E', from: 'B', to: 'E', label: '1', weight: 1, arrows: 'to', directed: true },
+                { id: 'C->F', from: 'C', to: 'F', label: '3', weight: 3, arrows: 'to', directed: true },
+                { id: 'D->E', from: 'D', to: 'E', label: '3', weight: 3, arrows: 'to', directed: true },
+                { id: 'E->C', from: 'E', to: 'C', label: '2', weight: 2, arrows: 'to', directed: true },
+                { id: 'E->F', from: 'E', to: 'F', label: '6', weight: 6, arrows: 'to', directed: true }
+            ]);
         }
 
         this._recordHistory();

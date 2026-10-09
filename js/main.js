@@ -49,10 +49,18 @@ document.addEventListener("DOMContentLoaded", () => {
     const btnAlgorithmMst = document.getElementById("btn-algorithm-mst");
     const btnAlgorithmDijkstra = document.getElementById("btn-algorithm-dijkstra");
     const btnAlgorithmFloyd = document.getElementById("btn-algorithm-floyd");
+    const btnAlgorithmFloydIsac = document.getElementById("btn-algorithm-floyd-isac");
     const floydStartNode = document.getElementById("floyd-start-node");
     const floydTargetNode = document.getElementById("floyd-target-node");
     const btnFloydQueryPath = document.getElementById("btn-floyd-query-path");
     const floydRouteResultContainer = document.getElementById("floyd-route-result-container");
+    const floydIsacModeEl = document.getElementById("floyd-isac-mode");
+    const floydIsacStartNode = document.getElementById("floyd-isac-start-node");
+    const floydIsacTargetNode = document.getElementById("floyd-isac-target-node");
+    const btnFloydIsacQueryPath = document.getElementById("btn-floyd-isac-query-path");
+    const floydIsacRouteResultContainer = document.getElementById("floyd-isac-route-result-container");
+    const floydControls = document.getElementById("floyd-controls");
+    const floydIsacControls = document.getElementById("floyd-isac-controls");
     const procedureSubtitle = document.querySelector('#procedure-panel p');
     const totalWeightLabel = document.getElementById('total-weight-label');
     const legendPrimary = document.getElementById('legend-primary');
@@ -61,52 +69,70 @@ document.addEventListener("DOMContentLoaded", () => {
     const exportResultLabel = document.getElementById('export-result-label');
 
     let currentFloydSolver = null;
+    let currentFloydIsacSolver = null;
 
     const populateFloydNodeSelects = () => {
-        if (!floydStartNode || !floydTargetNode) return;
         const nodes = graphManager.nodes.get();
-        const prevStart = floydStartNode.value;
-        const prevTarget = floydTargetNode.value;
-
         const optionsHtml = [
             '<option value="" disabled selected>Seleccione nodo...</option>',
             ...nodes.map(n => `<option value="${n.id}">Nodo ${n.label || n.id}</option>`)
         ].join('');
 
-        floydStartNode.innerHTML = optionsHtml;
-        floydTargetNode.innerHTML = optionsHtml;
+        if (floydStartNode && floydTargetNode) {
+            const prevStart = floydStartNode.value;
+            const prevTarget = floydTargetNode.value;
+            floydStartNode.innerHTML = optionsHtml;
+            floydTargetNode.innerHTML = optionsHtml;
+            if (nodes.some(n => n.id === prevStart)) floydStartNode.value = prevStart;
+            if (nodes.some(n => n.id === prevTarget)) floydTargetNode.value = prevTarget;
+        }
 
-        if (nodes.some(n => n.id === prevStart)) floydStartNode.value = prevStart;
-        if (nodes.some(n => n.id === prevTarget)) floydTargetNode.value = prevTarget;
+        if (floydIsacStartNode && floydIsacTargetNode) {
+            const prevStartIsac = floydIsacStartNode.value;
+            const prevTargetIsac = floydIsacTargetNode.value;
+            floydIsacStartNode.innerHTML = optionsHtml;
+            floydIsacTargetNode.innerHTML = optionsHtml;
+            if (nodes.some(n => n.id === prevStartIsac)) floydIsacStartNode.value = prevStartIsac;
+            if (nodes.some(n => n.id === prevTargetIsac)) floydIsacTargetNode.value = prevTargetIsac;
+        }
     };
 
     const updateAlgorithmUi = () => {
         const isDijkstra = activeAlgorithm === 'dijkstra';
         const isFloyd = activeAlgorithm === 'floyd';
+        const isFloydIsac = activeAlgorithm === 'floyd-isac';
 
         document.body.classList.toggle('dijkstra-active', isDijkstra);
         document.body.classList.toggle('floyd-active', isFloyd);
+        document.body.classList.toggle('floyd-isac-active', isFloydIsac);
 
-        btnSolve.innerHTML = isFloyd
-            ? '<span>⚡</span> <span>Resolver Floyd (Juan)</span>'
-            : isDijkstra
-                ? '<span>⚡</span> <span>Resolver Dijkstra</span>'
-                : '<span>⚡</span> <span>Resolver AEM</span>';
+        if (floydControls) floydControls.style.display = isFloyd ? 'block' : 'none';
+        if (floydIsacControls) floydIsacControls.style.display = isFloydIsac ? 'block' : 'none';
+
+        btnSolve.innerHTML = isFloydIsac
+            ? '<span>⚡</span> <span>Resolver Floyd (Isac)</span>'
+            : isFloyd
+                ? '<span>⚡</span> <span>Resolver Floyd (Fede)</span>'
+                : isDijkstra
+                    ? '<span>⚡</span> <span>Resolver Dijkstra</span>'
+                    : '<span>⚡</span> <span>Resolver AEM</span>';
 
         if (procedureSubtitle) {
-            procedureSubtitle.innerHTML = isFloyd
-                ? 'Matrices paso a paso D<sup>(k)</sup> y P<sup>(k)</sup>'
-                : isDijkstra
-                    ? 'Evolución de distancias y relajaciones'
-                    : 'Evolución de los conjuntos k, C<sub>k</sub> y C̄<sub>k</sub>';
+            procedureSubtitle.innerHTML = isFloydIsac
+                ? 'Matrices D<sup>(k)</sup> y Predecesores Π<sup>(k)</sup> (Isac)'
+                : isFloyd
+                    ? 'Matrices paso a paso D<sup>(k)</sup> y P<sup>(k)</sup> (Fede)'
+                    : isDijkstra
+                        ? 'Evolución de distancias y relajaciones'
+                        : 'Evolución de los conjuntos k, C<sub>k</sub> y C̄<sub>k</sub>';
         }
 
         if (totalWeightLabel) {
-            totalWeightLabel.innerText = isFloyd ? 'Dist. Ruta' : isDijkstra ? 'Distancia' : 'Peso total AEM';
+            totalWeightLabel.innerText = (isFloyd || isFloydIsac) ? 'Dist. Ruta' : isDijkstra ? 'Distancia' : 'Peso total AEM';
         }
 
         if (legendPrimary) {
-            legendPrimary.innerHTML = isFloyd
+            legendPrimary.innerHTML = (isFloyd || isFloydIsac)
                 ? '<i class="legend-line legend-line-floyd"></i>Ruta Floyd'
                 : isDijkstra
                     ? '<i class="legend-line legend-line-dijkstra"></i>Ruta mínima'
@@ -114,7 +140,7 @@ document.addEventListener("DOMContentLoaded", () => {
         }
 
         if (legendSecondary) {
-            legendSecondary.innerHTML = isFloyd
+            legendSecondary.innerHTML = (isFloyd || isFloydIsac)
                 ? '<i class="legend-line legend-line-other"></i>Sin ruta'
                 : isDijkstra
                     ? '<i class="legend-line legend-line-relaxed"></i>Relajada'
@@ -124,7 +150,7 @@ document.addEventListener("DOMContentLoaded", () => {
         if (legendOther) legendOther.innerHTML = '<i class="legend-line legend-line-other"></i>Sin seleccionar';
 
         if (exportResultLabel) {
-            exportResultLabel.innerText = isFloyd ? 'Exportar Floyd' : isDijkstra ? 'Exportar Dijkstra' : 'Exportar AEM';
+            exportResultLabel.innerText = isFloydIsac ? 'Exportar Floyd (Isac)' : isFloyd ? 'Exportar Floyd (Fede)' : isDijkstra ? 'Exportar Dijkstra' : 'Exportar AEM';
         }
 
         populateFloydNodeSelects();
@@ -146,6 +172,7 @@ document.addEventListener("DOMContentLoaded", () => {
         btnAlgorithmMst.className = 'px-4 py-1.5 text-xs font-semibold rounded-lg bg-emerald-500 text-slate-900 shadow';
         btnAlgorithmDijkstra.className = 'px-4 py-1.5 text-xs font-semibold rounded-lg text-slate-500';
         if (btnAlgorithmFloyd) btnAlgorithmFloyd.className = 'px-4 py-1.5 text-xs font-semibold rounded-lg text-slate-500';
+        if (btnAlgorithmFloydIsac) btnAlgorithmFloydIsac.className = 'px-4 py-1.5 text-xs font-semibold rounded-lg text-slate-500';
         graphManager.resetVisualStyles();
         updateAlgorithmUi();
         resetUI();
@@ -156,6 +183,7 @@ document.addEventListener("DOMContentLoaded", () => {
         btnAlgorithmDijkstra.className = 'px-4 py-1.5 text-xs font-semibold rounded-lg bg-emerald-500 text-slate-900 shadow';
         btnAlgorithmMst.className = 'px-4 py-1.5 text-xs font-semibold rounded-lg text-slate-500';
         if (btnAlgorithmFloyd) btnAlgorithmFloyd.className = 'px-4 py-1.5 text-xs font-semibold rounded-lg text-slate-500';
+        if (btnAlgorithmFloydIsac) btnAlgorithmFloydIsac.className = 'px-4 py-1.5 text-xs font-semibold rounded-lg text-slate-500';
         graphManager.resetVisualStyles();
         updateAlgorithmUi();
         resetUI();
@@ -167,9 +195,38 @@ document.addEventListener("DOMContentLoaded", () => {
             btnAlgorithmFloyd.className = 'px-4 py-1.5 text-xs font-semibold rounded-lg bg-emerald-500 text-slate-900 shadow';
             btnAlgorithmMst.className = 'px-4 py-1.5 text-xs font-semibold rounded-lg text-slate-500';
             btnAlgorithmDijkstra.className = 'px-4 py-1.5 text-xs font-semibold rounded-lg text-slate-500';
+            if (btnAlgorithmFloydIsac) btnAlgorithmFloydIsac.className = 'px-4 py-1.5 text-xs font-semibold rounded-lg text-slate-500';
             graphManager.resetVisualStyles();
             updateAlgorithmUi();
             resetUI();
+        });
+    }
+
+    if (btnAlgorithmFloydIsac) {
+        btnAlgorithmFloydIsac.addEventListener("click", () => {
+            activeAlgorithm = 'floyd-isac';
+            btnAlgorithmFloydIsac.className = 'px-4 py-1.5 text-xs font-semibold rounded-lg bg-emerald-500 text-slate-900 shadow';
+            btnAlgorithmMst.className = 'px-4 py-1.5 text-xs font-semibold rounded-lg text-slate-500';
+            btnAlgorithmDijkstra.className = 'px-4 py-1.5 text-xs font-semibold rounded-lg text-slate-500';
+            if (btnAlgorithmFloyd) btnAlgorithmFloyd.className = 'px-4 py-1.5 text-xs font-semibold rounded-lg text-slate-500';
+
+            // Cargar la red exclusiva de Isac si el lienzo está en blanco o recién iniciado
+            if (graphManager.nodes.length === 0) {
+                graphManager.loadPresetNetwork('redFloydIsac');
+            } else {
+                graphManager.resetVisualStyles();
+            }
+
+            updateAlgorithmUi();
+            resetUI();
+        });
+    }
+
+    if (floydIsacModeEl) {
+        floydIsacModeEl.addEventListener('change', () => {
+            const isAll = floydIsacModeEl.value === 'all';
+            const wrapper = document.getElementById('floyd-isac-target-wrapper');
+            if (wrapper) wrapper.style.display = isAll ? 'none' : 'block';
         });
     }
 
@@ -299,7 +356,9 @@ document.addEventListener("DOMContentLoaded", () => {
                 lastStartNode = importedSolution.startNode;
                 activeAlgorithm = importedSolution.result.algorithm || graphData.algorithm || 'mst';
                 updateAlgorithmUi();
-                if (activeAlgorithm === 'floyd') {
+                if (activeAlgorithm === 'floyd-isac') {
+                    restoreFloydIsacView(importedSolution.result);
+                } else if (activeAlgorithm === 'floyd') {
                     restoreFloydView(importedSolution.result);
                 } else if (activeAlgorithm === 'dijkstra') {
                     restoreDijkstraView(importedSolution.result);
@@ -350,17 +409,18 @@ document.addEventListener("DOMContentLoaded", () => {
             return;
         }
 
+        const isFloydIsac = activeAlgorithm === 'floyd-isac';
         const isFloyd = activeAlgorithm === 'floyd';
         const isDijkstra = activeAlgorithm === 'dijkstra';
-        const exportFileName = isFloyd ? 'optigraph-floyd.json' : isDijkstra ? 'optigraph-dijkstra.json' : 'optigraph-aem.json';
-        const exportAlgorithm = isFloyd ? 'floyd' : isDijkstra ? 'dijkstra' : 'mst';
+        const exportFileName = isFloydIsac ? 'optigraph-floyd-isac.json' : isFloyd ? 'optigraph-floyd.json' : isDijkstra ? 'optigraph-dijkstra.json' : 'optigraph-aem.json';
+        const exportAlgorithm = isFloydIsac ? 'floyd-isac' : isFloyd ? 'floyd' : isDijkstra ? 'dijkstra' : 'mst';
 
         downloadJson(exportFileName, {
             version: 2,
             algorithm: exportAlgorithm,
             exportedAt: new Date().toISOString(),
             graph: graphManager.getGraphData(),
-            result: isFloyd || isDijkstra ? lastSolveResult : {
+            result: isFloydIsac || isFloyd || isDijkstra ? lastSolveResult : {
                 startNode: lastStartNode,
                 selectedEdges: lastSolveResult.selectedEdges,
                 tiedEdges: lastSolveResult.tiedEdges,
@@ -372,10 +432,12 @@ document.addEventListener("DOMContentLoaded", () => {
 
     btnExportReport.addEventListener("click", () => {
         if (!lastSolveResult) {
-            Swal.fire({ icon: 'info', title: 'Aún no hay un resultado calculado', text: 'Resuelva la red antes de exportar el reporte.', confirmButtonColor: '#10b981', customClass: modalClasses });
+            Swal.fire({ icon: 'info', title: 'Aún no hay un resultado calculated', text: 'Resuelva la red antes de exportar el reporte.', confirmButtonColor: '#10b981', customClass: modalClasses });
             return;
         }
-        if (activeAlgorithm === 'floyd') {
+        if (activeAlgorithm === 'floyd-isac') {
+            downloadFloydReport('optigraph-reporte-floyd-isac.html', graphManager.getGraphData(), lastSolveResult);
+        } else if (activeAlgorithm === 'floyd') {
             downloadFloydReport('optigraph-reporte-floyd.html', graphManager.getGraphData(), lastSolveResult);
         } else if (activeAlgorithm === 'dijkstra') {
             downloadDijkstraReport('optigraph-reporte-dijkstra.html', graphManager.getGraphData(), lastSolveResult);
@@ -415,6 +477,11 @@ document.addEventListener("DOMContentLoaded", () => {
                     confirmButton: 'og-modal-confirm'
                 }
             });
+            return;
+        }
+
+        if (activeAlgorithm === 'floyd-isac') {
+            await solveFloydIsac(nodes, edges);
             return;
         }
 
@@ -524,8 +591,10 @@ document.addEventListener("DOMContentLoaded", () => {
         lastSolveResult = null;
         lastStartNode = null;
         currentFloydSolver = null;
+        currentFloydIsacSolver = null;
         if (floydRouteResultContainer) floydRouteResultContainer.innerHTML = '';
-        const solveLabel = activeAlgorithm === 'floyd' ? 'Floyd (Juan)' : activeAlgorithm === 'dijkstra' ? 'Dijkstra' : 'AEM';
+        if (floydIsacRouteResultContainer) floydIsacRouteResultContainer.innerHTML = '';
+        const solveLabel = activeAlgorithm === 'floyd-isac' ? 'Floyd (Isac)' : activeAlgorithm === 'floyd' ? 'Floyd (Fede)' : activeAlgorithm === 'dijkstra' ? 'Dijkstra' : 'AEM';
         document.getElementById("steps-container").innerHTML = `
             <div class="text-center py-12 text-slate-500 text-xs">
                 Haga clic en "Resolver ${solveLabel}" para generar la secuencia de iteraciones.
@@ -771,6 +840,222 @@ document.addEventListener("DOMContentLoaded", () => {
                 return;
             }
             queryFloydPath(start, target);
+        });
+    }
+
+    /**
+     * Resuelve Floyd-Warshall con el algoritmo de Isac (Matriz de Predecesores Π).
+     */
+    async function solveFloydIsac(nodes, edges) {
+        try {
+            const solver = new FloydIsacManager(nodes, edges);
+            const result = solver.solve();
+            currentFloydIsacSolver = solver;
+            lastSolveResult = result;
+
+            restoreFloydIsacView(result);
+
+            let start = floydIsacStartNode?.value;
+            let target = floydIsacTargetNode?.value;
+
+            if (!start || !target || start === target) {
+                if (nodes.length >= 2) {
+                    start = nodes[0].id;
+                    target = nodes[1].id;
+                    if (floydIsacStartNode) floydIsacStartNode.value = start;
+                    if (floydIsacTargetNode) floydIsacTargetNode.value = target;
+                }
+            }
+
+            if (start && target) {
+                queryFloydIsacPath(start, target);
+            }
+
+            Swal.fire({
+                icon: 'success',
+                title: '¡Floyd-Warshall (Isac) Calculado con Éxito!',
+                html: `
+                    <p class="text-xs text-slate-300 mb-2">Se completaron las <strong>${result.totalIterations} iteraciones</strong> del enfoque de Predecesores Π.</p>
+                    <p class="text-[11px] text-slate-400">Total de mejoras encontradas: <strong class="text-emerald-400">${result.totalRelaxations}</strong></p>
+                `,
+                confirmButtonColor: '#10b981',
+                customClass: { ...modalClasses, confirmButton: 'og-modal-confirm' }
+            });
+
+        } catch (error) {
+            const statusEl = document.getElementById("status-indicator");
+            statusEl.className = "inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-rose-900/60 text-rose-300 border border-rose-600 shadow-sm";
+            statusEl.innerText = "🔴 ERROR EN RED";
+
+            Swal.fire({
+                icon: 'error',
+                title: 'No se pudo ejecutar Floyd-Warshall (Isac)',
+                text: error.message,
+                confirmButtonColor: '#f43f5e',
+                customClass: { ...modalClasses, confirmButton: 'og-modal-deny' }
+            });
+        }
+    }
+
+    function restoreFloydIsacView(result) {
+        renderFloydIsacStepTables(result.stepHistory, result.nodeLabels);
+        const statusEl = document.getElementById("status-indicator");
+        statusEl.className = "inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-emerald-900/60 text-emerald-300 border border-emerald-600 shadow-sm";
+        statusEl.innerText = "🟢 FLOYD-WARSHALL (ISAC) CALCULADO";
+        if (iterationCountEl) iterationCountEl.innerText = result.totalIterations;
+        if (tieCountEl) tieCountEl.innerText = result.totalRelaxations;
+    }
+
+    function queryFloydIsacPath(startNodeId, targetNodeId) {
+        const nodes = graphManager.nodes.get();
+        const edges = graphManager.edges.get();
+
+        if (!currentFloydIsacSolver) {
+            currentFloydIsacSolver = new FloydIsacManager(nodes, edges);
+            const result = currentFloydIsacSolver.solve();
+            lastSolveResult = result;
+            restoreFloydIsacView(result);
+        }
+
+        const mode = floydIsacModeEl ? floydIsacModeEl.value : 'target';
+
+        try {
+            const startLabel = graphManager.nodes.get(startNodeId)?.label || startNodeId;
+
+            if (mode === 'target') {
+                if (!targetNodeId) {
+                    Swal.fire({
+                        icon: 'info',
+                        title: 'Seleccione Destino',
+                        text: 'Debe elegir un nodo de destino.',
+                        confirmButtonColor: '#10b981',
+                        customClass: modalClasses
+                    });
+                    return;
+                }
+                const route = currentFloydIsacSolver.reconstructPath(startNodeId, targetNodeId);
+                const targetLabel = graphManager.nodes.get(targetNodeId)?.label || targetNodeId;
+
+                if (route.reachable) {
+                    if (totalWeightEl) totalWeightEl.innerText = `${route.distance} u`;
+                    graphManager.highlightFloyd(route);
+
+                    if (floydIsacRouteResultContainer) {
+                        floydIsacRouteResultContainer.innerHTML = `
+                            <div class="floyd-route-result-card border-emerald-700 bg-emerald-950/60 p-3 rounded-lg border shadow-md">
+                                <div class="flex justify-between items-center mb-1">
+                                    <span class="font-bold text-emerald-300">Ruta ${startLabel} → ${targetLabel} (Isac)</span>
+                                    <span class="font-mono bg-emerald-900 text-emerald-200 px-2 py-0.5 rounded border border-emerald-700">Costo: ${route.distance} u</span>
+                                </div>
+                                <div class="font-mono text-emerald-300 font-bold tracking-wide text-xs">${route.pathNodeLabels.join(' → ')}</div>
+                            </div>
+                        `;
+                    }
+                } else {
+                    if (totalWeightEl) totalWeightEl.innerText = '∞';
+                    graphManager.resetVisualStyles();
+
+                    if (floydIsacRouteResultContainer) {
+                        floydIsacRouteResultContainer.innerHTML = `
+                            <div class="mt-2 p-2.5 rounded-lg border border-amber-600/50 bg-amber-950/40 text-amber-300 text-xs font-mono">
+                                ⚠️ No existe camino alcanzable de ${startLabel} a ${targetLabel} (Distancia = ∞).
+                            </div>
+                        `;
+                    }
+
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Sin Camino Alcanzable',
+                        text: `No existe camino posible entre Nodo ${startLabel} y Nodo ${targetLabel} (Distancia: ∞).`,
+                        confirmButtonColor: '#f59e0b',
+                        customClass: modalClasses
+                    });
+                }
+            } else {
+                // Modo "Origen a Todos" (Isac)
+                const otherNodes = nodes.filter(n => String(n.id) !== String(startNodeId));
+                let allRoutesHtml = '';
+                const allPathEdges = [];
+                const allPathNodeIds = [startNodeId];
+
+                otherNodes.forEach(n => {
+                    const r = currentFloydIsacSolver.reconstructPath(startNodeId, n.id);
+                    const destLabel = n.label || n.id;
+                    if (r.reachable) {
+                        allRoutesHtml += `
+                            <div class="flex justify-between items-center py-1 border-b border-emerald-900/40 text-xs">
+                                <span><strong class="text-slate-300">→ Nodo ${destLabel}:</strong> <span class="text-emerald-300 font-mono font-bold">${r.pathNodeLabels.join(' → ')}</span></span>
+                                <span class="font-mono bg-emerald-900/60 text-emerald-200 px-1.5 py-0.5 rounded text-[11px] border border-emerald-700/60">${r.distance} u</span>
+                            </div>`;
+                        (r.pathEdges || []).forEach(e => allPathEdges.push(e));
+                        (r.pathNodeIds || []).forEach(id => allPathNodeIds.push(id));
+                    } else {
+                        allRoutesHtml += `
+                            <div class="flex justify-between items-center py-1 border-b border-emerald-900/40 text-xs">
+                                <span><strong class="text-slate-300">→ Nodo ${destLabel}:</strong> <span class="text-amber-400 font-mono">Sin camino</span></span>
+                                <span class="font-mono bg-amber-950 text-amber-300 px-1.5 py-0.5 rounded text-[11px] border border-amber-800/60">∞</span>
+                            </div>`;
+                    }
+                });
+
+                if (totalWeightEl) totalWeightEl.innerText = 'Matriz Origen → Todos';
+                graphManager.highlightFloyd({
+                    reachable: true,
+                    pathNodeIds: allPathNodeIds,
+                    pathEdges: allPathEdges
+                });
+
+                if (floydIsacRouteResultContainer) {
+                    floydIsacRouteResultContainer.innerHTML = `
+                        <div class="floyd-route-result-card border-emerald-700 bg-emerald-950/60 p-3 rounded-lg border shadow-md space-y-2 max-h-64 overflow-y-auto">
+                            <div class="font-bold text-emerald-300 border-b border-emerald-800 pb-1 text-xs flex justify-between items-center">
+                                <span>🌐 Rutas desde Nodo ${startLabel} a Todos</span>
+                                <span class="text-[10px] text-emerald-400 font-normal">Predecesores Π</span>
+                            </div>
+                            <div class="space-y-1">
+                                ${allRoutesHtml}
+                            </div>
+                        </div>
+                    `;
+                }
+            }
+        } catch (error) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Error al consultar rutas',
+                text: error.message,
+                confirmButtonColor: '#f43f5e',
+                customClass: modalClasses
+            });
+        }
+    }
+
+    if (btnFloydIsacQueryPath) {
+        btnFloydIsacQueryPath.addEventListener("click", () => {
+            const start = floydIsacStartNode?.value;
+            const target = floydIsacTargetNode?.value;
+            const mode = floydIsacModeEl ? floydIsacModeEl.value : 'target';
+            if (!start) {
+                Swal.fire({
+                    icon: 'info',
+                    title: 'Seleccione Nodo Origen',
+                    text: 'Debe elegir un nodo de origen en el panel lateral.',
+                    confirmButtonColor: '#10b981',
+                    customClass: modalClasses
+                });
+                return;
+            }
+            if (mode === 'target' && !target) {
+                Swal.fire({
+                    icon: 'info',
+                    title: 'Seleccione Nodo Destino',
+                    text: 'Debe elegir un nodo de destino o cambiar al modo "Origen a Todos".',
+                    confirmButtonColor: '#10b981',
+                    customClass: modalClasses
+                });
+                return;
+            }
+            queryFloydIsacPath(start, target);
         });
     }
 });
@@ -1029,6 +1314,124 @@ function renderFloydStepTables(stepHistory, nodeLabels) {
                     </div>
                     <div class="floyd-table-scroll">
                         <table class="floyd-matrix-table">
+                            ${pRowsHtml}
+                        </table>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        container.appendChild(stepBlock);
+    });
+}
+
+/**
+ * Renderiza las iteraciones de Floyd-Warshall (Isac) en el panel de procedimiento:
+ * - Títulos en tonos Emerald/Teal con la fórmula explícita aplicada.
+ * - Destacado de fila y columna pivote.
+ * - Tabla D^(k) (Distancias Cortas) y Matriz Π^(k) (Predecesores Directos CLRS).
+ *
+ * @param {Array<Object>} stepHistory Historial de pasos generado por FloydIsacManager.
+ * @param {string[]} nodeLabels Etiquetas legibles de los nodos.
+ * @returns {void}
+ */
+function renderFloydIsacStepTables(stepHistory, nodeLabels) {
+    const container = document.getElementById("steps-container");
+    if (!container) return;
+    container.innerHTML = "";
+
+    stepHistory.forEach(step => {
+        const stepBlock = document.createElement("div");
+        stepBlock.className = "floyd-step-block border-l-4 border-emerald-500 bg-slate-900 rounded-xl p-3 shadow-lg mb-4 space-y-3";
+
+        const badgeText = step.k === 0 ? "Paso Base Inicial" : `${step.updatedCells.length} mejoras de distancia`;
+
+        let dRowsHtml = `<tr><th class="floyd-corner bg-emerald-950 text-emerald-300 font-bold border border-emerald-800">D\\to</th>`;
+        nodeLabels.forEach((label, colIdx) => {
+            const isColPivot = step.pivotIndex !== null && colIdx === step.pivotIndex;
+            dRowsHtml += `<th class="${isColPivot ? 'bg-emerald-900 text-emerald-200 font-bold border border-emerald-700' : 'bg-slate-800 text-slate-300 border border-slate-700'}">${label}</th>`;
+        });
+        dRowsHtml += `</tr>`;
+
+        nodeLabels.forEach((rowLabel, rowIdx) => {
+            const isRowPivot = step.pivotIndex !== null && rowIdx === step.pivotIndex;
+            dRowsHtml += `<tr><th class="${isRowPivot ? 'bg-emerald-900 text-emerald-200 font-bold border border-emerald-700' : 'bg-slate-800 text-slate-300 border border-slate-700'}">${rowLabel}</th>`;
+            nodeLabels.forEach((_, colIdx) => {
+                const rawVal = step.D[rowIdx][colIdx];
+                const val = rawVal === Infinity ? '∞' : rawVal;
+                const isDiag = rowIdx === colIdx;
+                const isPivotIntersection = step.pivotIndex !== null && rowIdx === step.pivotIndex && colIdx === step.pivotIndex;
+                const isPivotRowCol = step.pivotIndex !== null && (rowIdx === step.pivotIndex || colIdx === step.pivotIndex);
+                const isUpdated = step.updatedCells.some(u => u.i === rowIdx && u.j === colIdx);
+
+                let bgStyle = 'border: 1px solid #334155;';
+                if (isPivotIntersection) {
+                    bgStyle = 'background-color: #064e3b; color: #6ee7b7; font-weight: bold; border: 1px solid #059669;';
+                } else if (isPivotRowCol) {
+                    bgStyle = 'background-color: #065f46; color: #a7f3d0; border: 1px solid #047857;';
+                }
+                if (isDiag) bgStyle = 'background-color: #020617; color: #64748b; border: 1px solid #1e293b;';
+                if (isUpdated) bgStyle = 'background-color: #047857; color: #ecfdf5; font-weight: bold; border: 2px solid #34d399;';
+
+                dRowsHtml += `<td class="text-center p-1.5 font-mono text-xs" style="${bgStyle}">${val}</td>`;
+            });
+            dRowsHtml += `</tr>`;
+        });
+
+        let pRowsHtml = `<tr><th class="floyd-corner bg-teal-950 text-teal-300 font-bold border border-teal-800">Π\\to</th>`;
+        nodeLabels.forEach(label => {
+            pRowsHtml += `<th class="bg-slate-800 text-slate-300 border border-slate-700">${label}</th>`;
+        });
+        pRowsHtml += `</tr>`;
+
+        nodeLabels.forEach((rowLabel, rowIdx) => {
+            pRowsHtml += `<tr><th class="bg-slate-800 text-slate-300 border border-slate-700">${rowLabel}</th>`;
+            nodeLabels.forEach((_, colIdx) => {
+                const val = step.P[rowIdx][colIdx] || '-';
+                const isDiag = rowIdx === colIdx;
+                const isUpdated = step.updatedCells.some(u => u.i === rowIdx && u.j === colIdx);
+
+                let bgStyle = 'border: 1px solid #334155;';
+                if (isDiag) bgStyle = 'background-color: #020617; color: #64748b; border: 1px solid #1e293b;';
+                if (isUpdated) bgStyle = 'background-color: #115e59; color: #ccfbf1; font-weight: bold; border: 2px solid #2dd4bf;';
+
+                pRowsHtml += `<td class="text-center p-1.5 font-mono text-xs" style="${bgStyle}">${val}</td>`;
+            });
+            pRowsHtml += `</tr>`;
+        });
+
+        const formulaHtml = step.k === 0
+            ? '<span class="text-[10px] text-slate-400">Matriz base construida desde los arcos directos y diagonal en 0</span>'
+            : `<span class="text-[10px] text-emerald-300 font-mono">Fórmula: D<sup>(${step.k})</sup>[i][j] = min(D<sup>(${step.k - 1})</sup>[i][j], D<sup>(${step.k - 1})</sup>[i][${step.pivotNode}] + D<sup>(${step.k - 1})</sup>[${step.pivotNode}][j])</span>`;
+
+        stepBlock.innerHTML = `
+            <div class="flex justify-between items-center border-b border-emerald-800/60 pb-1.5">
+                <span class="text-xs font-bold text-emerald-400">${step.title}</span>
+                <span class="text-[10px] font-mono bg-emerald-950 text-emerald-300 px-2 py-0.5 rounded border border-emerald-700">${badgeText}</span>
+            </div>
+            <div class="bg-slate-950/80 p-1.5 rounded border border-emerald-900/60 text-center">
+                ${formulaHtml}
+            </div>
+            <div class="space-y-3">
+                <div class="floyd-table-card border border-emerald-900/80 rounded-lg overflow-hidden">
+                    <div class="bg-emerald-950 px-2 py-1 text-xs font-semibold text-emerald-300 flex justify-between items-center border-b border-emerald-900">
+                        <span>📊 Matriz de Distancias Cortas D<sup>(${step.k})</sup></span>
+                        <span class="text-[10px] text-emerald-400 font-normal">Pivote: ${step.pivotNode || 'Base'}</span>
+                    </div>
+                    <div class="overflow-x-auto p-1 bg-slate-950">
+                        <table class="w-full text-xs text-center border-collapse">
+                            ${dRowsHtml}
+                        </table>
+                    </div>
+                </div>
+
+                <div class="floyd-table-card border border-teal-900/80 rounded-lg overflow-hidden">
+                    <div class="bg-teal-950 px-2 py-1 text-xs font-semibold text-teal-300 flex justify-between items-center border-b border-teal-900">
+                        <span>🧭 Matriz de Predecesores Directos Π<sup>(${step.k})</sup></span>
+                        <span class="text-[10px] text-teal-400 font-normal">Cadena CLRS</span>
+                    </div>
+                    <div class="overflow-x-auto p-1 bg-slate-950">
+                        <table class="w-full text-xs text-center border-collapse">
                             ${pRowsHtml}
                         </table>
                     </div>
