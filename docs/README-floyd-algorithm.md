@@ -15,7 +15,7 @@ El algoritmo de Floyd-Warshall es un método de **Programación Dinámica** que 
 Sea $V = \{1, 2, \dots, N\}$ el conjunto de vértices de la red.
 Se definen dos secuencias de matrices para cada iteración $k \in \{0, 1, \dots, N\}$:
 1. $D^{(k)}[i][j]$: Longitud del camino más corto desde el nodo $i$ hasta el nodo $j$, utilizando únicamente vértices intermedios del subconjunto $\{1, 2, \dots, k\}$.
-2. $P^{(k)}[i][j]$: Nodo predecesor inmediato de $j$ en dicho camino más corto desde $i$.
+2. $P^{(k)}[i][j]$: Etiqueta del pivote intermedio que produjo una mejora del camino de $i$ a $j$. En el estado inicial contiene la etiqueta del destino fuera de la diagonal y `-` en la diagonal. Esta implementación no utiliza la convención de predecesor inmediato.
 
 ### Ecuación de Recurrencia (Paso Inductivo)
 
@@ -25,7 +25,7 @@ $$D^{(k)}[i][j] = \min \Big( D^{(k-1)}[i][j], \; D^{(k-1)}[i][k] + D^{(k-1)}[k][
 
 Si $D^{(k-1)}[i][k] + D^{(k-1)}[k][j] < D^{(k-1)}[i][j]$:
 - Se actualiza la distancia: $D^{(k)}[i][j] = D^{(k-1)}[i][k] + D^{(k-1)}[k][j]$
-- Se actualiza el recorrido/predecesor: $P^{(k)}[i][j] = P^{(k-1)}[k][j]$
+- Se registra la etiqueta del pivote: $P^{(k)}[i][j] = \operatorname{etiqueta}(k)$.
 
 ---
 
@@ -40,8 +40,9 @@ Si $D^{(k-1)}[i][k] + D^{(k-1)}[k][j] < D^{(k-1)}[i][j]$:
 4. **Ausencia de Conexión**:
    $$D^{(0)}[i][j] = \infty \quad (\text{si } i \neq j \text{ y no existe conexión directa})$$
 5. **Matriz de Recorridos Inicial $P^{(0)}$**:
-   - $P^{(0)}[i][j] = i$ si existe conexión directa de $i$ a $j$ ($i \neq j$).
-   - $P^{(0)}[i][j] = '-'` si $i = j$ o si no hay conexión directa.
+   - $P^{(0)}[i][j] = \operatorname{etiqueta}(j)$ para toda celda fuera de la diagonal, incluso si no existe conexión directa.
+   - $P^{(0)}[i][i]$ contiene `-`.
+   - La matriz de distancias determina si el par es alcanzable; una etiqueta en `P` no demuestra que exista camino.
 
 ---
 
@@ -67,16 +68,20 @@ Si $D^{(k-1)}[i][k] + D^{(k-1)}[k][j] < D^{(k-1)}[i][j]$:
   ```javascript
   const recursiveBuild = (srcIdx, destIdx) => {
       if (srcIdx === destIdx) return [destIdx];
-      const pred = P[srcIdx][destIdx];
-      if (!pred || pred === '-') return null;
-      const predIdx = nodeIndexByLabel.get(pred);
-      const prefix = recursiveBuild(srcIdx, predIdx);
-      if (!prefix) return null;
-      return [...prefix, destIdx];
+      const pivot = this.finalP[srcIdx][destIdx];
+      if (!pivot || pivot === '-') return null;
+      const pivotIdx = this.nodeIndexByLabel.get(pivot);
+      if (pivotIdx === undefined) return null;
+      if (pivotIdx === destIdx) return [srcIdx, destIdx];
+      const left = recursiveBuild(srcIdx, pivotIdx);
+      const right = recursiveBuild(pivotIdx, destIdx);
+      if (!left || !right) return null;
+      return [...left, ...right.slice(1)];
   };
   ```
 - Si $D[u][v] = \infty$, retorna `reachable: false` (camino inalcanzable).
 - Si existe camino, retorna los nodos y aristas de Vis.js correspondientes para resaltado visual.
+- Requiere etiquetas únicas para que el mapeo de pivotes a índices sea inequívoco. El fragmento anterior resume la función interna de `reconstructPath()`; no es una API independiente.
 
 ---
 
@@ -90,3 +95,7 @@ La interfaz gráfica implementa los requerimientos pedagógicos:
 3. **Resaltado de Fila y Columna Pivote**: En la matriz de distancias, la fila $k$ y la columna $k$ se iluminan en amarillo suave para evidenciar visualmente el cruce $D[i][k] + D[k][j]$.
 4. **Celdas Actualizadas**: Las celdas que sufren mejoras de costo se destacan con texto en negrita y borde luminoso celeste.
 5. **Red de Ejemplo de 8 Nodos**: Preset `Red 4: Floyd 8 Nodos (Juan)` cargable con un solo clic.
+
+## Persistencia y límites
+
+`main.js` exporta el resultado con `algorithm: "floyd"` y genera un reporte HTML con las matrices. La serialización JSON actual convierte `Infinity` en `null` y no lo restaura al importar. Después de editar la red se debe volver a resolver: la edición manual no invalida automáticamente la instancia anterior. Consulta las [limitaciones generales](../README.md#limitaciones-conocidas).

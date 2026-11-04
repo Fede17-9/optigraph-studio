@@ -20,6 +20,7 @@ Devuelve:
 - `targetNode`: destino o `null`.
 - `distances`: distancia minima conocida por nodo.
 - `predecessors`: predecesor usado para reconstruir rutas.
+- `permanentIterations`: iteración en que cada nodo se vuelve permanente.
 - `selectedPathEdges`: aristas de la ruta origen-destino.
 - `settledNodes`: nodos procesados definitivamente.
 - `relaxedEdges`: aristas que produjeron mejoras.
@@ -28,16 +29,16 @@ Devuelve:
 En cada paso, la tabla de distancias se presenta con el formato academico:
 
 ```text
-Nodo: [Distancia, Predecesor]
+Nodo: [Distancia, Predecesor]_(k)
 ```
 
 Por ejemplo:
 
 ```text
-R: [0, -], M: [6, R], N: [4, R]
+R: [0, -]_(0), M: [6, R]_(-), N: [4, R]_(-)
 ```
 
-El guion representa el origen o un nodo que aun no tiene predecesor.
+El guion en el predecesor representa el origen o un nodo que aún no tiene predecesor. En el subíndice indica que el nodo todavía no es permanente.
 
 ### Proceso
 
@@ -81,4 +82,6 @@ Recorre los predecesores desde el destino hasta el origen y devuelve las aristas
 - Pesos estrictamente positivos.
 - Origen-destino y origen-a-todos.
 - Nodos inalcanzables representados con distancia infinita.
-- Sin flechas ni modelo dirigido en esta version.
+- El editor compartido permite dibujar flechas, pero este solver ignora `directed` y `arrows` y crea adyacencias en ambos sentidos. Utilizar redes no dirigidas para este modo.
+- En modo origen-destino, las distancias hacia otros nodos pueden quedar provisionales al detener la ejecución.
+- La exportación JSON convierte las distancias infinitas en `null` sin restaurarlas al importar. Consulta las [limitaciones generales](../README.md#limitaciones-conocidas).

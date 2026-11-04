@@ -18,14 +18,18 @@ El documento carga desde CDN:
 El orden de los scripts es importante:
 
 1. `js/mst-algorithm.js` define `MSTSolver`.
-2. `js/graph-manager.js` define `GraphManager`.
-3. `js/main.js` instancia ambas clases y conecta los eventos de la interfaz.
+2. `js/dijkstra-algorithm.js` define `DijkstraSolver`.
+3. `js/floyd-algorithm.js` define `FloydJuanManager`.
+4. `js/graph-manager.js` define `GraphManager`.
+5. `js/main.js` instancia los servicios y conecta los eventos de la interfaz.
+
+Tailwind CSS y Vis Network se cargan sin una versión fijada en sus URLs. SweetAlert2 fija solo la versión mayor mediante `sweetalert2@11`. No hay un lockfile que registre las versiones exactas resueltas.
 
 ## Estructura visual
 
 ### Encabezado
 
-Contiene la marca OptiGraph Studio y la navegacion de talleres. El Taller 1: AEM esta habilitado; los talleres futuros aparecen bloqueados visualmente.
+Contiene la marca OptiGraph Studio y la navegación de algoritmos. AEM, Dijkstra y Floyd están habilitados. El botón de Flujo Máximo está deshabilitado y no tiene un solver implementado.
 
 ### Panel izquierdo de herramientas
 
@@ -39,19 +43,20 @@ El elemento `#tools-panel` contiene:
 - `#btn-undo` y `#btn-redo`: navegan por el historial de ediciones.
 - `#btn-import`: abre el selector de archivos JSON.
 - `#btn-export-network`: exporta una red editable.
-- `#btn-export-result`: exporta la red junto con el resultado AEM.
+- `#btn-export-result`: exporta la red junto con el resultado del algoritmo activo.
 - `#btn-export-report`: descarga un reporte HTML imprimible.
-- `#btn-reset-view`: elimina el resaltado visual del AEM.
-- `#select-demo`: carga los presets Red 1, Red 2 o Red 3.
-- `#btn-solve`: inicia la resolucion de Prim.
-- `#btn-algorithm-mst` y `#btn-algorithm-dijkstra`: cambian el algoritmo activo.
+- `#btn-reset-view`: limpia el resaltado y el resultado activo sin borrar la red.
+- `#select-demo`: carga los presets Red 1, Red 2, Red 3 o Red 4 de Floyd.
+- `#btn-solve`: inicia la resolución del algoritmo activo.
+- `#btn-algorithm-mst`, `#btn-algorithm-dijkstra` y `#btn-algorithm-floyd`: cambian el algoritmo activo.
 - `#dijkstra-controls`: selecciona el modo origen-destino u origen-a-todos.
+- `#floyd-controls`: contiene los selectores de origen/destino y el botón `#btn-floyd-query-path` para consultar rutas de Floyd.
 
 El input `#graph-file-input` permanece oculto y es activado por el boton Importar.
 
 ### Lienzo central
 
-`#canvas-container` es el contenedor que recibe la instancia de `vis.Network`. La leyenda `#graph-legend` explica los estilos visuales:
+`#canvas-container` es el contenedor que recibe la instancia de `vis.Network`. La leyenda `.graph-legend` cambia según el algoritmo; para Prim explica estos estilos:
 
 - Verde solido: arco seleccionado para el AEM.
 - Azul punteado: arco alternativo empatado.
@@ -63,13 +68,13 @@ El footer muestra:
 
 - `#status-indicator`: estado de la red.
 - `#node-count`: cantidad de nodos.
-- `#total-weight`: peso total del AEM.
+- `#total-weight`: peso total del AEM o distancia de la ruta consultada.
 - `#iteration-count`: cantidad de iteraciones.
-- `#tie-count`: cantidad de arcos alternativos empatados.
+- `#tie-count`: alternativas empatadas acumuladas en Prim, pasos con empate en Dijkstra o mejoras de distancia en Floyd, aunque la etiqueta visible siga diciendo «Empates».
 
 ### Panel derecho
 
-`#procedure-panel` contiene `#steps-container`, donde `main.js` crea las tarjetas de la bitacora de Prim.
+`#procedure-panel` contiene `#steps-container`, donde `main.js` crea las tarjetas de Prim, los pasos de Dijkstra o las matrices de Floyd, según el algoritmo activo.
 
 En pantallas pequenas existen `#btn-toggle-tools` y `#btn-toggle-procedure` para plegar los paneles laterales.
 

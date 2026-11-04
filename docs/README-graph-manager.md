@@ -16,6 +16,8 @@ La clase controla:
 - Creacion de redes vacias y aleatorias.
 - Estilos del AEM y empates.
 - Estilos de la ruta Dijkstra, nodos procesados y aristas relajadas.
+- Conexiones dirigidas o bidireccionales y resaltado de rutas de Floyd.
+- Etiquetas laterales formales de Dijkstra.
 
 ## Estado principal
 
@@ -70,11 +72,13 @@ Los `DataSet` notifican cambios mediante `nodes.on('*')` y `edges.on('*')`.
 
 ### `addNode(x, y)`
 
-Crea un nodo con identificador alfabetico basado en la cantidad actual de nodos y conserva la posicion recibida desde Vis.js.
+Crea un nodo con identificador alfabético basado en la cantidad actual de nodos y conserva la posición recibida desde Vis.js. Este criterio puede repetir IDs después de eliminar nodos; no garantiza unicidad para todas las secuencias de edición.
 
 ### `promptAddEdge(fromNode, toNode)`
 
-Solicita un peso positivo usando SweetAlert2, evita conexiones duplicadas y agrega la arista con etiqueta y propiedad `weight`.
+Solicita un peso positivo y la dirección usando SweetAlert2. Por defecto ofrece arco dirigido; añade `arrows: 'to'` y `directed: true` en ese caso. La opción bidireccional utiliza `arrows: ''` y `directed: false`.
+
+Para arcos dirigidos comprueba si existe una conexión con los mismos extremos en ese orden; para conexiones bidireccionales revisa ambos sentidos. Solo Floyd respeta la dirección al calcular; Prim y Dijkstra interpretan los extremos en ambos sentidos.
 
 ### `promptDeleteNode(nodeId)`
 
@@ -101,7 +105,7 @@ Si una arista aparece como seleccionada y empatada, el estilo verde del AEM tien
 
 ### `resetVisualStyles()`
 
-Devuelve todas las aristas al estilo base sin modificar nodos, conexiones ni pesos.
+Restablece colores de nodos y estilos de aristas y elimina las etiquetas laterales de Dijkstra. No borra la estructura ni los pesos del grafo.
 
 ### `highlightDijkstra(result)`
 
@@ -114,14 +118,17 @@ Pinta el resultado de Dijkstra sin reutilizar la paleta de Prim:
 
 La notacion academica `[Dist, Previo]_(k)` no se inserta dentro de la etiqueta visible
 del nodo, porque eso haria que Vis.js agrandara la bolita para contener varias lineas.
-El nodo conserva su tamano y etiqueta original; la notacion completa queda disponible
-como informacion contextual al pasar el cursor sobre el nodo.
+El nodo conserva su tamaño y etiqueta original. La notación completa se muestra en una etiqueta lateral persistente y como información contextual al pasar el cursor. `positionFormalLabels()` actualiza su posición cuando Vis Network redibuja.
+
+### `highlightFloyd(routeInfo)`
+
+Resalta las aristas de la ruta en azul, el origen en azul, el destino en verde y los nodos intermedios en amarillo. Si no hay una ruta alcanzable, restablece los estilos base.
 
 ## Presets
 
 ### `loadPresetNetwork(presetKey)`
 
-Carga las redes academicas `red1`, `red2` o `red3`. Cada preset define nodos, coordenadas, aristas y pesos. La clase limpia el estado anterior y ajusta el zoom con `network.fit`.
+Carga las redes académicas `red1`, `red2`, `red3` o `redFloyd`. La última contiene 8 nodos y arcos dirigidos. Cada preset define nodos, coordenadas, aristas y pesos. La clase limpia el estado anterior y ajusta el zoom con `network.fit`.
 
 ## Generacion de redes
 
@@ -135,12 +142,13 @@ Carga las redes academicas `red1`, `red2` o `red3`. Cada preset define nodos, co
 ### `createRandomNetwork(nodeCount, density, maxWeight)`
 
 - Valida cantidad, densidad y peso maximo.
+- Acepta 2 a 50 nodos, densidad entre 0 y 1 y peso máximo entero entre 1 y 999.
 - Crea primero un arbol base, garantizando conexidad.
 - Agrega aristas adicionales segun la densidad.
 - Asigna pesos enteros positivos aleatorios.
 - Guarda el resultado en los DataSet.
 
-La densidad no modifica Prim; solo controla cuantas conexiones extras pueden aparecer.
+La densidad es la probabilidad de agregar cada conexión adicional; no garantiza una densidad final exacta. Las redes generadas son no dirigidas.
 
 ## Persistencia
 
@@ -153,9 +161,11 @@ Devuelve una copia serializable con version, fecha, nodos y aristas. Se usa para
 Acepta dos formatos:
 
 1. Red simple con `nodes` y `edges` en la raiz.
-2. Resultado AEM con `graph.nodes`, `graph.edges` y `result`.
+2. Resultado de Prim, Dijkstra o Floyd con `graph.nodes`, `graph.edges` y `result`.
 
-Valida identificadores, extremos y pesos antes de reemplazar el grafo actual. Si existe `result`, lo devuelve a `main.js` para restaurar la vista solucionada.
+Comprueba IDs de nodos no repetidos, extremos existentes y pesos finitos positivos; convierte los pesos a números. No valida completamente las propiedades de los nodos, los IDs de aristas, la versión ni la estructura del resultado. Si existe `result`, lo devuelve a `main.js` para restaurar la vista.
+
+La comparación de extremos durante la importación convierte IDs a texto, pero los solvers utilizan también comparaciones estrictas. Conviene usar IDs de texto consistentes. Las coordenadas exportadas son las almacenadas en el `DataSet`; no hay sincronización explícita de posiciones al terminar un arrastre.
 
 ## Historial
 
