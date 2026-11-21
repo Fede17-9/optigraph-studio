@@ -32,7 +32,10 @@
         class="px-4 py-1.5 text-xs font-semibold rounded-lg bg-emerald-500 text-slate-900 shadow">Taller 1: AEM</button>
       <button id="btn-algorithm-dijkstra" class="px-4 py-1.5 text-xs font-semibold rounded-lg text-slate-500">Taller 2:
         Dijkstra</button>
-      <button id="btn-algorithm-floyd" class="px-4 py-1.5 text-xs font-semibold rounded-lg text-slate-500">Floyd (Juan)</button>
+      <button id="btn-algorithm-floyd" class="px-4 py-1.5 text-xs font-semibold rounded-lg text-slate-500">Floyd
+        (Fede)</button>
+      <button id="btn-algorithm-floyd-isac" class="px-4 py-1.5 text-xs font-semibold rounded-lg text-slate-500">Floyd
+        (Isac)</button>
       <button class="px-4 py-1.5 text-xs font-semibold rounded-lg text-slate-500 cursor-not-allowed" disabled>Taller 3:
         Flujo Máximo 🔒</button>
     </nav>
@@ -90,7 +93,8 @@
           <option value="red1">Red 1 (Ejemplo Clase)</option>
           <option value="red2">Red 2 (Ejemplo Clase)</option>
           <option value="red3">Red 3 (15 Nodos)</option>
-          <option value="redFloyd">Red 4: Floyd 8 Nodos (Juan)</option>
+          <option value="redFloyd">Red 4: Floyd 8 Nodos (Fede)</option>
+          <option value="redFloydIsac">Red 5: Floyd Exclusiva (Isac)</option>
         </select>
 
         <div id="dijkstra-controls" class="dijkstra-controls">
@@ -104,25 +108,64 @@
 
         <div id="floyd-controls" class="floyd-controls space-y-2">
           <div class="border-t border-slate-700 pt-2">
-            <h3 class="text-xs font-bold uppercase tracking-wider text-sky-400">Consultar Ruta Óptima</h3>
+            <h3 class="text-xs font-bold uppercase tracking-wider text-sky-400">Consultar Ruta Óptima (Fede)</h3>
             <p class="text-[11px] text-slate-400">Reconstruye la ruta óptima desde la matriz P:</p>
           </div>
           <div>
             <label class="og-form-label" for="floyd-start-node">Nodo Origen</label>
-            <select id="floyd-start-node" class="w-full bg-slate-900 border border-slate-700 text-slate-300 text-xs rounded-lg p-2.5">
+            <select id="floyd-start-node"
+              class="w-full bg-slate-900 border border-slate-700 text-slate-300 text-xs rounded-lg p-2.5">
               <option value="" disabled selected>Seleccione origen...</option>
             </select>
           </div>
           <div>
             <label class="og-form-label" for="floyd-target-node">Nodo Destino</label>
-            <select id="floyd-target-node" class="w-full bg-slate-900 border border-slate-700 text-slate-300 text-xs rounded-lg p-2.5">
+            <select id="floyd-target-node"
+              class="w-full bg-slate-900 border border-slate-700 text-slate-300 text-xs rounded-lg p-2.5">
               <option value="" disabled selected>Seleccione destino...</option>
             </select>
           </div>
-          <button id="btn-floyd-query-path" type="button" class="tool-action-button w-full mt-1 border-sky-600 bg-sky-950/60 hover:bg-sky-900 text-sky-200">
-            <span>🔍</span> <span>Ver Ruta Óptima</span>
+          <button id="btn-floyd-query-path" type="button"
+            class="tool-action-button w-full mt-1 border-sky-600 bg-sky-950/60 hover:bg-sky-900 text-sky-200">
+            <span>🔍</span> <span>Ver Ruta Óptima (Fede)</span>
           </button>
           <div id="floyd-route-result-container"></div>
+        </div>
+
+        <div id="floyd-isac-controls" class="floyd-isac-controls space-y-2">
+          <div class="border-t border-emerald-900/60 pt-2">
+            <h3 class="text-xs font-bold uppercase tracking-wider text-emerald-400 flex items-center space-x-1">
+              <span>🌿</span> <span>Consultar Rutas (Isac)</span>
+            </h3>
+            <p class="text-[11px] text-slate-400">Reconstrucción mediante la Matriz de Predecesores Π:</p>
+          </div>
+          <div>
+            <label class="og-form-label text-emerald-300" for="floyd-isac-mode">Modo de Consulta (Isac)</label>
+            <select id="floyd-isac-mode"
+              class="w-full bg-slate-900 border border-emerald-700/60 text-emerald-200 text-xs rounded-lg p-2.5 focus:ring-emerald-500 focus:border-emerald-500">
+              <option value="target" selected>Origen a Destino</option>
+              <option value="all">Origen a Todos los Nodos</option>
+            </select>
+          </div>
+          <div>
+            <label class="og-form-label text-emerald-300" for="floyd-isac-start-node">Nodo Origen</label>
+            <select id="floyd-isac-start-node"
+              class="w-full bg-slate-900 border border-emerald-700/60 text-slate-200 text-xs rounded-lg p-2.5 focus:ring-emerald-500 focus:border-emerald-500">
+              <option value="" disabled selected>Seleccione origen...</option>
+            </select>
+          </div>
+          <div id="floyd-isac-target-wrapper">
+            <label class="og-form-label text-emerald-300" for="floyd-isac-target-node">Nodo Destino</label>
+            <select id="floyd-isac-target-node"
+              class="w-full bg-slate-900 border border-emerald-700/60 text-slate-200 text-xs rounded-lg p-2.5 focus:ring-emerald-500 focus:border-emerald-500">
+              <option value="" disabled selected>Seleccione destino...</option>
+            </select>
+          </div>
+          <button id="btn-floyd-isac-query-path" type="button"
+            class="tool-action-button w-full mt-1 border-emerald-600 bg-emerald-950/80 hover:bg-emerald-900 text-emerald-100 font-bold shadow-md shadow-emerald-950">
+            <span>🔍</span> <span>Ver Rutas (Isac)</span>
+          </button>
+          <div id="floyd-isac-route-result-container"></div>
         </div>
       </div>
 
@@ -190,6 +233,7 @@
   <script src="js/mst-algorithm.js?v=2"></script>
   <script src="js/dijkstra-algorithm.js?v=2"></script>
   <script src="js/floyd-algorithm.js?v=2"></script>
+  <script src="js/floyd-isac-algorithm.js?v=2"></script>
   <script src="js/graph-manager.js?v=2"></script>
   <script src="js/main.js?v=2"></script>
 </body>

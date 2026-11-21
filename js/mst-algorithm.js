@@ -102,8 +102,8 @@ class MSTSolver {
         }
 
         // Definir el nodo de origen; si el usuario no indica uno válido, usar el primero.
-        const initialNode = (startNodeId && this.nodes.some(n => n.id === startNodeId)) 
-            ? startNodeId 
+        const initialNode = (startNodeId && this.nodes.some(n => n.id === startNodeId))
+            ? startNodeId
             : this.nodes[0].id;
 
         // C_k contiene los nodos visitados y C̄_k los que aún no pertenecen al árbol.
