@@ -1,6 +1,6 @@
 # OptiGraph Studio
 
-**Editor visual de redes y herramienta educativa para estudiar Prim, Dijkstra y Floyd-Warshall en el navegador.**
+**Herramienta educativa para estudiar Prim, Dijkstra, ambas versiones de Floyd-Warshall y Programación Lineal por el método gráfico en el navegador.**
 
 ![JavaScript ES6+](https://img.shields.io/badge/JavaScript-ES6%2B-F7DF1E?logo=javascript&logoColor=black)
 ![Aplicación estática](https://img.shields.io/badge/Aplicaci%C3%B3n-est%C3%A1tica-0284C7)
@@ -12,10 +12,10 @@ Todo el cálculo y la edición se ejecutan en el cliente. La aplicación utiliza
 
 ## Estado y alcance
 
-- **Implementado:** editor de grafos, Prim, Dijkstra, Floyd-Warshall, ejemplos, generación de redes, historial, importación y exportación JSON y reportes HTML.
+- **Implementado:** editor de grafos, Prim, Dijkstra, Floyd (Fede), Floyd (Isac), PL gráfica de dos variables, ejemplos, generación de redes, historial, importación/exportación JSON y reportes HTML.
 - **Pendiente en la interfaz:** Taller 3, Flujo Máximo. Su botón está deshabilitado y no hay un solver implementado.
-- **Validación actual:** no se incluyen pruebas automatizadas, configuración de CI ni evidencia suficiente para declarar el proyecto listo para producción. Consulta las [limitaciones conocidas](#limitaciones-conocidas).
-- **Demostración y capturas:** no hay una URL de demo documentada ni capturas incluidas en el repositorio. La aplicación puede ejecutarse localmente con los pasos de esta guía.
+- **Validación:** 28 pruebas nativas de Node y 41 comprobaciones de navegador para PL e integración con redes. Consulta el [banco de pruebas](docs/PRUEBAS-PL.md) y las [limitaciones conocidas](#limitaciones-conocidas).
+- **Aplicación:** [GitHub Pages](https://fede17-9.github.io/optigraph-studio/). Se incluyen [capturas y registros de validación](docs/evidence/).
 
 ## Funcionalidades
 
@@ -68,6 +68,23 @@ La matriz `P` utiliza una convención de **pivotes intermedios**: inicialmente c
 
 > **Dirección de las conexiones:** el editor permite dibujar flechas en cualquier modo, pero únicamente Floyd las considera al calcular. Para Prim y Dijkstra, utiliza redes no dirigidas e interpreta sus conexiones en ambos sentidos.
 
+## Programación Lineal · Método gráfico
+
+Formulario, plano SVG interactivo y procedimiento académico en tres paneles. Admite
+maximización/minimización, restricciones ≤/≥/= y exactamente dos variables continuas
+no negativas. Verifica cruces, evalúa Z y distingue óptimos únicos/múltiples,
+infactibilidad, objetivo no acotado y región no acotada con óptimo finito. Calcula
+restricciones activas y redundantes; el borde del visor nunca limita el modelo.
+
+Incluye los cuatro problemas del taller, el ejemplo de la profesora y casos especiales,
+actualización automática, selección de vértices, zoom/desplazamiento, semiplanos,
+archivos JSON y reporte HTML autónomo con la gráfica y todas las operaciones.
+
+Consulta el [manual de usuario](docs/MANUAL-PL.md), la [arquitectura matemática](docs/README-programacion-lineal.md)
+y el [guion de sustentación](docs/DEMOSTRACION-PL.md).
+
+![PL en escritorio](docs/evidence/pl-desktop.png)
+
 ## Tecnologías y decisiones técnicas
 
 - **HTML5 y CSS3:** estructura semántica, tema visual, paneles, modales y reglas responsive propias.
@@ -91,6 +108,10 @@ flowchart TD
     Main --> Prim["MSTSolver · Prim y DFS"]
     Main --> Dijkstra["DijkstraSolver · distancias y rutas"]
     Main --> Floyd["FloydJuanManager · matrices y rutas"]
+    Main --> FloydIsac["FloydIsacManager · predecesores"]
+    Main --> PL["LinearProgrammingController · modelo y procedimiento"]
+    PL --> SolverPL["LinearProgrammingSolver · geometría y optimización"]
+    PL --> SVG["LinearProgrammingGraphManager · plano SVG"]
     Main --> Files["Archivos JSON y reportes HTML"]
     Main --> Modals["SweetAlert2 · formularios y avisos"]
 ```
@@ -107,7 +128,13 @@ optigraph-studio/
 │   ├── graph-manager.js       # Grafo visual, edición, presets e historial
 │   ├── mst-algorithm.js       # Prim, conexidad y empates
 │   ├── dijkstra-algorithm.js  # Distancias, relajaciones y rutas
-│   └── floyd-algorithm.js     # Matrices, pivotes y reconstrucción recursiva
+│   ├── floyd-algorithm.js     # Matrices, pivotes y reconstrucción recursiva
+│   ├── floyd-isac-algorithm.js # Floyd con predecesores
+│   ├── pl-solver.js           # Motor matemático puro de PL
+│   ├── pl-graph-manager.js    # Plano SVG, capas y selección
+│   └── pl-controller.js       # Formulario, procedimiento y archivos PL
+├── tests/                     # PL y regresión de algoritmos de redes
+├── scripts/check-ui.cjs       # Validación opcional con Playwright
 ├── docs/                      # Documentación técnica por archivo
 └── README.md
 ```
@@ -151,13 +178,22 @@ La red, el historial y el último resultado viven en memoria durante la sesión.
 
 1. Selecciona un ejemplo o crea una red vacía o aleatoria.
 2. Para editar, usa **Agregar Nodo** y haz clic en el lienzo, o **Conectar Arco** y selecciona sus dos extremos. Introduce un peso positivo y la dirección.
-3. Selecciona **Taller 1: AEM**, **Taller 2: Dijkstra** o **Floyd (Juan)**.
+3. Selecciona **Taller 1: AEM**, **Taller 2: Dijkstra**, **Floyd (Fede)** o **Floyd (Isac)**.
 4. Pulsa **Resolver**. Prim solicita el nodo inicial; Dijkstra solicita el origen y, si corresponde, el destino; Floyd calcula las matrices y permite consultar pares de nodos.
 5. Revisa el procedimiento, el resaltado y las métricas. Cambiar de algoritmo limpia la visualización del resultado anterior.
 6. Después de modificar nodos, conexiones o pesos, **vuelve a resolver antes de consultar o exportar resultados**.
 7. Exporta la red editable, la solución o el reporte. **Restablecer** limpia la visualización y el resultado activo sin borrar la estructura de la red.
 
+Para PL selecciona **PL · Método gráfico**, introduce Z y sus restricciones y pulsa
+**Resolver modelo**. El modo conserva sus datos al regresar desde redes y se
+actualiza al editar; sigue el [manual específico](docs/MANUAL-PL.md).
+
 ## Importación, exportación y reportes
+
+PL tiene su propio formato JSON, identificado por `type: "linear-programming"`,
+`version: 1`. Permite exportar modelo o resultado y un reporte con SVG y procedimiento.
+Su importación siempre vuelve a calcular la solución. Los formatos siguientes
+corresponden al editor de redes y continúan disponibles.
 
 - **Exportar red:** descarga `optigraph-red.json`, con `version: 1`, `exportedAt`, `nodes` y `edges`. Incluye las propiedades almacenadas de los nodos y las conexiones, como etiquetas, coordenadas, pesos y dirección.
 - **Exportar resultado:** descarga `optigraph-aem.json`, `optigraph-dijkstra.json` u `optigraph-floyd.json`. El documento usa `version: 2` e incluye `algorithm`, `exportedAt`, `graph` y `result`.
@@ -183,7 +219,11 @@ El importador comprueba la presencia de los arreglos, IDs de nodos no repetidos,
 
 ## Pruebas y validaciones
 
-El repositorio no incluye una suite de pruebas unitarias, de integración o de interfaz, ni comandos `npm test`, linting o cobertura. La separación de los solvers permite probarlos con datos simples sin iniciar Vis Network.
+Con Node.js 20 o posterior, ejecuta `node --test` desde la raíz. La suite incluye
+24 pruebas del motor PL y 4 de regresión de Prim, Dijkstra y ambas versiones de
+Floyd. No necesita npm, navegador ni Vis Network. La validación opcional de interfaz
+con Playwright se documenta en [PRUEBAS-PL.md](docs/PRUEBAS-PL.md).
+No se incluyen métricas de cobertura ni configuración de CI.
 
 Como comprobación estática opcional, con Node.js instalado:
 
@@ -206,27 +246,35 @@ Para una revisión manual reproducible, se recomienda:
 5. Exportar e importar una red y un resultado de cada algoritmo, revisar el HTML de reporte y comprobar Deshacer/Rehacer.
 6. Revisar escritorio y pantallas pequeñas, incluidos paneles plegables, etiquetas y desplazamiento de las matrices.
 
-Esta lista es una guía de verificación, no una declaración de que todos esos flujos cuentan con pruebas automatizadas o validación de navegador.
+Esta lista complementa la suite; no todos los flujos antiguos tienen cobertura automatizada.
 
 ## Despliegue
 
 La aplicación puede servirse como contenido estático publicando `index.html`, `css/` y `js/` y conservando sus rutas relativas. No hay un comando de build ni un servidor de aplicación que desplegar.
 
-El repositorio no contiene configuración de hosting, contenedores ni pipelines de despliegue, y no documenta una URL pública de demostración. Para añadir una demo verificable, primero publica esos archivos en un alojamiento estático, comprueba la carga de las dependencias y registra aquí la URL resultante.
+GitHub Pages publica la rama `main` en
+[fede17-9.github.io/optigraph-studio](https://fede17-9.github.io/optigraph-studio/).
+El flujo de actualización, PR y sincronización de ramas se explica en
+[ENTREGA-PL.md](docs/ENTREGA-PL.md). La configuración de publicación existente se conserva.
 
 ## Limitaciones conocidas
 
 - **Seguridad de la importación:** algunos campos importados se interpolan en HTML sin escape y el resultado adjunto no se valida completamente. Importa únicamente archivos de confianza; no existe una garantía de procesamiento seguro de JSON ajeno.
-- **Resultados desactualizados:** la edición manual no invalida automáticamente el último cálculo ni la instancia de Floyd. Vuelve a resolver después de modificar la red y antes de exportar.
+- **Resultados de redes desactualizados:** la edición manual del grafo no invalida automáticamente el último cálculo ni la instancia de Floyd. Vuelve a resolver después de modificar la red y antes de exportar. PL sí invalida y recalcula al editar.
 - **Serialización de infinitos:** `JSON.stringify` convierte `Infinity` en `null`. No hay conversión inversa al importar resultados; esto afecta a nodos inalcanzables y también a estados intermedios con distancias aún desconocidas.
 - **Identificadores:** la creación manual usa la cantidad de nodos para generar el ID y puede repetirlo después de eliminar nodos. La interfaz devuelve IDs de selectores como texto; los IDs numéricos importados pueden no coincidir con los que esperan los solvers. Floyd depende de etiquetas únicas para reconstruir rutas.
 - **Posiciones:** el arrastre visual no sincroniza explícitamente las coordenadas del `DataSet`; una exportación no garantiza conservar la última posición arrastrada. El historial tampoco registra cada movimiento del lienzo.
 - **Modelo del grafo:** Prim y Dijkstra tratan todas las conexiones como bidireccionales. La reconstrucción de aristas en presencia de conexiones paralelas no garantiza seleccionar la de menor peso; utiliza una sola conexión por par para estos modos.
 - **Dependencias y escala:** se necesita acceso a CDN y no hay versiones exactas fijadas para reproducir todas las dependencias. Floyd conserva y renderiza matrices de cada iteración; no se incluyen mediciones de rendimiento ni garantías para redes grandes.
+- **PL:** solo dos variables continuas no negativas, sin programación entera. Usa doble precisión con tolerancia, no fracciones exactas. Modelos mal condicionados o de escala extrema requieren revisión numérica. La comprobación de redundancias es individual y no elimina filas automáticamente.
 
 ### Mejoras futuras
 
-Flujo Máximo es el módulo pendiente visible en la interfaz. Como prioridades técnicas propuestas, sujetas a implementación: añadir pruebas de los solvers y de importación/exportación, validar y escapar datos externos, invalidar cálculos al editar, preservar infinitos en JSON, generar IDs únicos, sincronizar posiciones y fijar versiones de dependencias. Estas mejoras no se presentan como funcionalidades terminadas ni como un calendario comprometido.
+Flujo Máximo es el módulo pendiente visible en la interfaz. Como prioridades técnicas
+para redes: ampliar pruebas de importación/exportación, validar y escapar datos
+externos, invalidar cálculos al editar, preservar infinitos en JSON, generar IDs únicos,
+sincronizar posiciones y fijar versiones de dependencias. Estas mejoras no se
+presentan como funcionalidades terminadas ni como un calendario comprometido.
 
 ## Documentación técnica
 
@@ -237,6 +285,8 @@ Flujo Máximo es el módulo pendiente visible en la interfaz. Como prioridades t
 - [Prim y conexidad: `js/mst-algorithm.js`](docs/README-mst-algorithm.md).
 - [Dijkstra y reconstrucción de rutas: `js/dijkstra-algorithm.js`](docs/README-dijkstra-algorithm.md).
 - [Floyd-Warshall y matrices: `js/floyd-algorithm.js`](docs/README-floyd-algorithm.md).
+- [Programación Lineal: motor, gráfica y controlador](docs/README-programacion-lineal.md).
+- [Manual PL](docs/MANUAL-PL.md), [pruebas](docs/PRUEBAS-PL.md) y [sustentación](docs/DEMOSTRACION-PL.md).
 
 Para mantener la separación de responsabilidades, los cambios de interacción se coordinan desde `main.js`, la gestión visual se concentra en `GraphManager` y los cálculos permanecen independientes del DOM. Conviene documentar contratos con JSDoc, validar los datos y revisar los flujos de escritorio y móvil al cambiar la interfaz.
 

@@ -1,5 +1,15 @@
 # Documentacion de `index.html`
 
+## Sección PL
+
+El menú incluye **PL · Método gráfico**, además de AEM, Dijkstra y ambas versiones
+de Floyd. `pl-workspace` es una sección inicialmente oculta, independiente del
+editor de redes. El controlador genera su formulario, SVG y procedimiento.
+
+Se cargan, en orden, `pl-solver.js`, `pl-graph-manager.js` y `pl-controller.js`
+antes de `main.js`. Son scripts clásicos sin instalación ni build. Consulta el
+[contrato de PL](README-programacion-lineal.md).
+
 ## Responsabilidad
 
 `index.html` es el punto de entrada de OptiGraph Studio. Define la estructura visual de la aplicacion y carga las dependencias externas y los modulos JavaScript.

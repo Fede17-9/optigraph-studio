@@ -1,5 +1,14 @@
 # Documentacion de `css/styles.css`
 
+## Estilos de Programación Lineal
+
+Las clases `pl-` definen tres columnas: formulario, gráfica y procedimiento, cada
+una con desplazamiento cuando es necesario. Bajo 1100 px se apilan y el documento
+recupera su desplazamiento vertical; bajo 640 px se amplían campos y botones.
+`[hidden]` prevalece sobre el grid para alternar PL y redes. El encabezado admite
+envolver los botones del menú. El SVG incorpora sus propios colores y se exporta
+con tipografía y fondo para un reporte independiente.
+
 ## Responsabilidad
 
 `css/styles.css` contiene los estilos propios de OptiGraph Studio. Complementa las clases de Tailwind sin reemplazar la estructura visual definida en `index.html`.

@@ -13,10 +13,24 @@ No implementa la matematica de Prim ni dibuja directamente el canvas. Coordina l
 - `graphManager`: instancia que administra la red visual.
 - `lastSolveResult`: ultima solucion calculada o importada.
 - `lastStartNode`: nodo inicial de la ultima solucion.
-- `activeAlgorithm`: algoritmo activo (`mst`, `dijkstra` o `floyd`).
+- `activeAlgorithm`: algoritmo activo (`mst`, `dijkstra`, `floyd`, `floyd-isac` o `pl`).
 - `currentFloydSolver`: instancia de Floyd usada para consultar rutas después del cálculo.
+- `currentFloydIsacSolver`: instancia con la convención de predecesores de Isac.
+- `plController`: modelo, resultado y vista PL independientes de la red.
 
 Estos datos permiten actualizar el footer y exportar el resultado activo. Viven en memoria y no se guardan automáticamente al cerrar la página.
+
+## Integración de Programación Lineal
+
+`updateAlgorithmUi()` alterna `workspace-layout` y `pl-workspace`, sin vaciar los
+nodos ni el modelo PL. El controlador PL administra sus propios controles y tres
+paneles. El evento de resolver se dirige a PL antes de comprobar dos nodos.
+
+El importador distingue `type: 'linear-programming'` antes de invocar
+`GraphManager.importGraph()`: valida y recalcula PL; los formatos antiguos siguen
+su ruta anterior. Los eventos de exportación también despachan primero el modo PL.
+Las responsabilidades de sus tres módulos se detallan en
+[README-programacion-lineal.md](README-programacion-lineal.md).
 
 ## Inicializacion
 

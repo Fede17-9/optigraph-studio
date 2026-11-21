@@ -1,0 +1,36 @@
+﻿✔ Prim conserva AEM de peso 5 y rechaza una red desconectada (2.0913ms)
+✔ Dijkstra conserva ruta de costo 5 e identifica un destino inalcanzable (0.9215ms)
+✔ Floyd (Fede): ruta A-B-C de costo 5, con respeto de dirección y desconexión (2.4781ms)
+✔ Floyd (Isac): ruta A-B-C de costo 5, con respeto de dirección y desconexión (1.3731ms)
+✔ Escalas que desbordan la normalización se rechazan sin inventar una solución (2.6214ms)
+✔ Ejemplo académico spec: solución óptima y comprobación de todos los vértices (3.7839ms)
+✔ Ejemplo académico computers: solución óptima y comprobación de todos los vértices (2.7555ms)
+✔ Ejemplo académico contracts: solución óptima y comprobación de todos los vértices (0.7958ms)
+✔ Ejemplo académico modules: solución óptima y comprobación de todos los vértices (0.7523ms)
+✔ Ejemplo académico datacenter: solución óptima y comprobación de todos los vértices (0.5744ms)
+✔ Profesora: mínimo 2 sobre todo el segmento entre (0,1) y (2/3,0) (0.8101ms)
+✔ Paralelas incompatibles: infactible sin reportar un óptimo (0.3192ms)
+✔ Z no acotada: se devuelve una dirección que cumple el cono y mejora Z (0.4292ms)
+✔ Región no acotada con mínimo único finito: (1,1), Z=2 (0.5511ms)
+✔ Óptimos sobre una semirrecta aunque solamente exista un vértice (0.3337ms)
+✔ Una igualdad produce un segmento, no una región de área positiva (0.5665ms)
+✔ Dos igualdades independientes producen un único punto (0.3886ms)
+✔ Objetivo nulo: toda la región factible es óptima (0.2563ms)
+✔ Restricción redundante puede estar activa en el óptimo (1.1652ms)
+✔ Restricción inactiva no es automáticamente redundante (0.4282ms)
+✔ Centro de datos: límite de supervisión redundante y cruces (6,6),(8,4) rechazados (0.8909ms)
+✔ Verticales, horizontales y coincidencia con ejes no dividen entre cero (0.4198ms)
+✔ Triples cruces y restricciones duplicadas no duplican vértices (0.3192ms)
+✔ 0x+0y: tautología y contradicción se distinguen exactamente (0.4548ms)
+✔ Sin restricciones explícitas: el primer cuadrante se analiza sin caja artificial (0.2181ms)
+✔ Reescalar restricciones u objetivo no cambia la solución ni crea falsos empates (1.0383ms)
+✔ Coeficientes negativos y minimización no acotada (0.234ms)
+✔ Validación de valores vacíos, no finitos, signos e IDs (0.3102ms)
+ℹ tests 28
+ℹ suites 0
+ℹ pass 28
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 191.6879

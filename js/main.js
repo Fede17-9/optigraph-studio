@@ -68,6 +68,13 @@ document.addEventListener("DOMContentLoaded", () => {
     const legendOther = document.getElementById('legend-other');
     const exportResultLabel = document.getElementById('export-result-label');
 
+    // El modo PL conserva su modelo y resultados sin utilizar nodos ni arcos.
+    const btnAlgorithmPl = document.getElementById('btn-algorithm-pl');
+    const graphWorkspace = document.getElementById('workspace-layout');
+    const plController = new LinearProgrammingController(document.getElementById('pl-workspace'), {
+        onImport: () => graphFileInput.click()
+    });
+
     let currentFloydSolver = null;
     let currentFloydIsacSolver = null;
 
@@ -98,6 +105,22 @@ document.addEventListener("DOMContentLoaded", () => {
     };
 
     const updateAlgorithmUi = () => {
+        const isPl = activeAlgorithm === 'pl';
+        graphWorkspace.hidden = isPl;
+        document.body.classList.toggle('pl-active', isPl);
+        btnAlgorithmPl.setAttribute('aria-pressed', String(isPl));
+        btnAlgorithmPl.className = isPl
+            ? 'px-4 py-1.5 text-xs font-semibold rounded-lg bg-emerald-500 text-slate-900 shadow'
+            : 'px-4 py-1.5 text-xs font-semibold rounded-lg text-slate-500';
+        if (isPl) {
+            [btnAlgorithmMst, btnAlgorithmDijkstra, btnAlgorithmFloyd, btnAlgorithmFloydIsac].forEach(btn => {
+                if (btn) btn.className = 'px-4 py-1.5 text-xs font-semibold rounded-lg text-slate-500';
+            });
+            plController.show();
+            return;
+        }
+        plController.hide();
+        requestAnimationFrame(() => graphManager.network.redraw());
         const isDijkstra = activeAlgorithm === 'dijkstra';
         const isFloyd = activeAlgorithm === 'floyd';
         const isFloydIsac = activeAlgorithm === 'floyd-isac';
@@ -166,6 +189,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
     graphManager.onGraphChange = updateHistoryButtons;
     updateHistoryButtons();
+
+    btnAlgorithmPl.addEventListener('click', () => {
+        activeAlgorithm = 'pl';
+        updateAlgorithmUi();
+    });
 
     btnAlgorithmMst.addEventListener("click", () => {
         activeAlgorithm = 'mst';
@@ -349,7 +377,14 @@ document.addEventListener("DOMContentLoaded", () => {
 
         try {
             const graphData = JSON.parse(await file.text());
+            if (graphData.type === 'linear-programming') {
+                plController.importPayload(graphData);
+                activeAlgorithm = 'pl';
+                updateAlgorithmUi();
+                return;
+            }
             const importedSolution = graphManager.importGraph(graphData);
+            if (activeAlgorithm === 'pl') { activeAlgorithm = 'mst'; updateAlgorithmUi(); }
             resetUI();
             if (importedSolution?.result) {
                 lastSolveResult = importedSolution.result;
@@ -394,10 +429,12 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     btnExportNetwork.addEventListener("click", () => {
+        if (activeAlgorithm === 'pl') { plController.tryAction(() => plController.exportModel()); return; }
         downloadJson('optigraph-red.json', graphManager.getGraphData());
     });
 
     btnExportResult.addEventListener("click", () => {
+        if (activeAlgorithm === 'pl') { plController.tryAction(() => plController.exportResult()); return; }
         if (!lastSolveResult) {
             Swal.fire({
                 icon: 'info',
@@ -431,6 +468,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     btnExportReport.addEventListener("click", () => {
+        if (activeAlgorithm === 'pl') { plController.tryAction(() => plController.exportReport()); return; }
         if (!lastSolveResult) {
             Swal.fire({ icon: 'info', title: 'Aún no hay un resultado calculated', text: 'Resuelva la red antes de exportar el reporte.', confirmButtonColor: '#10b981', customClass: modalClasses });
             return;
@@ -461,6 +499,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // --- Resolver AEM mediante Prim y presentar su resultado ---
     btnSolve.addEventListener("click", async () => {
+        // PL debe despacharse antes de exigir los dos nodos de un grafo.
+        if (activeAlgorithm === 'pl') { plController.solve(true); return; }
         const nodes = graphManager.nodes.get();
         const edges = graphManager.edges.get();
 

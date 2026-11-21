@@ -8,7 +8,7 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <script type="text/javascript" src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-  <link rel="stylesheet" href="css/styles.css">
+  <link rel="stylesheet" href="css/styles.css?v=pl-1">
   <style>
     #canvas-container {
       background-image: radial-gradient(#334155 1px, transparent 1px);
@@ -36,6 +36,7 @@
         (Fede)</button>
       <button id="btn-algorithm-floyd-isac" class="px-4 py-1.5 text-xs font-semibold rounded-lg text-slate-500">Floyd
         (Isac)</button>
+      <button id="btn-algorithm-pl" type="button" aria-pressed="false" class="px-4 py-1.5 text-xs font-semibold rounded-lg text-slate-500">PL · Método gráfico</button>
       <button class="px-4 py-1.5 text-xs font-semibold rounded-lg text-slate-500 cursor-not-allowed" disabled>Taller 3:
         Flujo Máximo 🔒</button>
     </nav>
@@ -230,12 +231,17 @@
 
   </div>
 
+  <section id="pl-workspace" class="pl-workspace" hidden aria-label="Programación lineal por el método gráfico"></section>
+
   <script src="js/mst-algorithm.js?v=2"></script>
   <script src="js/dijkstra-algorithm.js?v=2"></script>
   <script src="js/floyd-algorithm.js?v=2"></script>
   <script src="js/floyd-isac-algorithm.js?v=2"></script>
   <script src="js/graph-manager.js?v=2"></script>
-  <script src="js/main.js?v=2"></script>
+  <script src="js/pl-solver.js?v=pl-1"></script>
+  <script src="js/pl-graph-manager.js?v=pl-1"></script>
+  <script src="js/pl-controller.js?v=pl-1"></script>
+  <script src="js/main.js?v=pl-1"></script>
 </body>
 
 </html>

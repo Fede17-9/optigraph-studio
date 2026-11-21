@@ -1,5 +1,95 @@
 /*Estilos personalizados, animaciones y canvas */
 
+/* PL: tres paneles independientes del editor de redes. */
+body > header { flex-wrap: wrap; gap: .75rem; flex: 0 0 auto; }
+body > header nav { flex-wrap: wrap; max-width: 100%; gap: .25rem; }
+.pl-workspace[hidden], #workspace-layout[hidden] { display: none !important; }
+.pl-workspace { display: grid; grid-template-columns: minmax(270px, 310px) minmax(320px, 1fr) minmax(310px, 390px); flex: 1; min-height: 0; width: 100%; overflow: hidden; color: #e2e8f0; background: #07111f; font: 13px/1.5 system-ui, sans-serif; }
+.pl-workspace * { box-sizing: border-box; }
+.pl-workspace h2 { font-size: 18px; font-weight: 650; margin: 4px 0 6px; }
+.pl-workspace h3 { font-size: 14px; font-weight: 650; }
+.pl-workspace p { margin: 6px 0; overflow-wrap: anywhere; }
+.pl-sidebar, .pl-procedure-panel { overflow-y: auto; min-width: 0; padding: 19px 16px; background: #0f1b2d; }
+.pl-sidebar { border-right: 1px solid #263449; }
+.pl-procedure-panel { border-left: 1px solid #263449; }
+.pl-panel-heading { margin-bottom: 20px; }
+.pl-panel-heading > p, .pl-help { color: #a6b5c8; font-size: 12px; }
+.pl-eyebrow { font-size: 10px; font-weight: 650; letter-spacing: .08em; color: #6ee7b7; }
+.pl-field { display: flex; flex-direction: column; gap: 6px; margin: 14px 0; font-weight: 500; }
+.pl-workspace input:not([type=checkbox]), .pl-workspace select { width: 100%; min-width: 0; min-height: 36px; padding: 7px 9px; border: 1px solid #43516a; border-radius: 6px; background: #07111f; color: #eef4fc; font: inherit; color-scheme: dark; }
+.pl-workspace input[aria-invalid=true] { border-color: #fb7185; }
+.pl-workspace input:focus-visible, .pl-workspace select:focus-visible, .pl-workspace button:focus-visible { outline: 2px solid #6ee7b7; outline-offset: 2px; }
+.pl-objective { min-width: 0; border: 0; margin: 16px 0 22px; padding: 0; }
+.pl-objective legend { margin-bottom: 8px; font-size: 13px; font-weight: 650; }
+.pl-coefficients { display: flex; align-items: center; gap: 8px; }
+.pl-coefficients label { display: flex; align-items: center; gap: 6px; min-width: 0; flex: 1; }
+.pl-section-heading { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.pl-button { min-height: 36px; border: 1px solid #43516a; background: #17263c; color: #e2e8f0; border-radius: 6px; padding: 7px 11px; font: inherit; font-size: 12px; font-weight: 550; cursor: pointer; }
+.pl-button:hover { background: #20344e; }
+.pl-primary { background: #34d399; border-color: #34d399; color: #03261e; }
+.pl-primary:hover { background: #6ee7b7; }
+.pl-constraint { position: relative; min-width: 0; margin: 14px 0; padding: 12px 10px 10px; border: 1px solid #33445d; border-radius: 7px; }
+.pl-constraint legend { padding: 0 4px; color: #c7d8ef; font-weight: 650; }
+.pl-remove { position: absolute; top: -20px; right: 6px; border: 0; background: #0f1b2d; color: #fda4af; font: inherit; font-size: 11px; padding: 5px; cursor: pointer; }
+.pl-relation { display: grid; grid-template-columns: 68px minmax(0, 1fr); align-items: center; gap: 8px; margin-top: 9px; }
+.pl-domain { margin-top: 16px !important; color: #c7d8ef; font-size: 12px; }
+.pl-actions, .pl-files { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 16px; }
+.pl-files { padding-top: 16px; border-top: 1px solid #33445d; }
+.pl-errors { margin-top: 14px; color: #fecdd3; font-size: 12px; }
+.pl-main { display: flex; flex-direction: column; min-width: 0; min-height: 0; overflow: auto; padding: 18px 16px; }
+.pl-plot-heading { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 10px; }
+.pl-plot-actions { display: flex; gap: 6px; }
+.pl-plot-actions button { min-width: 36px; }
+.pl-layers { display: flex; justify-content: space-between; flex-wrap: wrap; align-items: center; gap: 8px; margin: 10px 0 5px; font-size: 11px; color: #afbdd0; }
+.pl-layers label { display: flex; align-items: center; gap: 7px; cursor: pointer; }
+.pl-layers input { accent-color: #34d399; }
+.pl-plot { flex: 1 0 350px; min-height: 350px; position: relative; touch-action: none; user-select: none; }
+.pl-plot svg { display: block; width: 100%; height: 100%; min-height: 350px; }
+.pl-plot circle[data-vertex] { cursor: pointer; }
+.pl-plot circle[data-vertex]:focus { outline: none; stroke: #fbbf24; stroke-width: 3; }
+.pl-legend { display: flex; flex-wrap: wrap; gap: 6px 15px; margin: 8px 0; font-size: 11px; color: #bdcadd; }
+.pl-legend span { display: inline-flex; gap: 6px; align-items: center; overflow-wrap: anywhere; }
+.pl-legend i { width: 14px; height: 3px; flex: 0 0 auto; }
+.pl-region-note { font-size: 12px; color: #a7f3d0; margin: 8px 0; }
+.pl-result { margin: 8px 0 12px; padding: 14px 0; border-top: 1px solid #33445d; border-bottom: 1px solid #33445d; }
+.pl-result h3 { color: #c4b5fd; }
+.pl-result[data-status=infeasible] h3 { color: #fda4af; }
+.pl-result[data-status=unbounded] h3 { color: #fcd34d; }
+.pl-vertex-detail { font-size: 12px; }
+.pl-vertex-detail h3 { color: #b8ccec; }
+.pl-step { margin: 0 0 12px; border-bottom: 1px solid #2b3a50; padding-bottom: 10px; }
+.pl-step > summary { cursor: pointer; font-weight: 600; color: #d9e8f8; padding: 8px 0; }
+.pl-step-content { padding: 2px 0 5px; }
+.pl-step .pl-step { margin: 7px 0; border-bottom-color: #243449; }
+.pl-step .pl-step > summary { font-size: 12px; font-weight: 500; }
+.pl-equation { font-family: ui-monospace, monospace; font-size: 12px; }
+.pl-table-wrap { width: 100%; overflow-x: auto; margin: 12px 0; }
+.pl-table { border-collapse: collapse; width: 100%; font-size: 11px; color: #cbd8e9; }
+.pl-table td, .pl-table th { text-align: left; padding: 7px 5px; border: 1px solid #3a4a60; vertical-align: top; overflow-wrap: anywhere; }
+.pl-table th { color: #ecf4ff; background: #1b2b41; font-weight: 600; }
+.pl-optimal-row { background: #193b36; }
+.pl-selected-row { outline: 1px solid #a78bfa; outline-offset: -1px; }
+.pl-vertex-button { min-width: 30px; min-height: 30px; color: #d8caff; font-weight: 600; cursor: pointer; }
+@media (max-width: 1100px) {
+  body.pl-active { height: auto; min-height: 100svh; overflow: auto; }
+  .pl-workspace { display: flex; flex-direction: column; overflow: visible; }
+  .pl-sidebar, .pl-main, .pl-procedure-panel { overflow: visible; border: 0; }
+  .pl-sidebar { border-bottom: 1px solid #33445d; }
+  .pl-procedure-panel { border-top: 1px solid #33445d; }
+  .pl-plot { flex: none; height: 520px; }
+  .pl-sidebar form { max-width: 650px; }
+  .pl-files { max-width: 650px; }
+}
+@media (max-width: 640px) {
+  .pl-sidebar, .pl-main, .pl-procedure-panel { padding: 16px 12px; }
+  .pl-workspace input:not([type=checkbox]), .pl-workspace select { min-height: 44px; font-size: 16px; }
+  .pl-button { min-height: 44px; }
+  .pl-remove { min-height: 34px; top: -24px; }
+  .pl-plot { height: 420px; }
+  .pl-layers > span { display: none; }
+  .pl-table { font-size: 12px; }
+}
+
 /* Custom Scrollbar para el panel de pasos */
 ::-webkit-scrollbar {
   width: 6px;
